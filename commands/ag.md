@@ -1,2 +1,2 @@
-# Ignore a string
+# Ignore a string two
 ag -v PATTERN
