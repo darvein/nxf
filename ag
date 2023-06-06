@@ -1,0 +1,2 @@
+# Ignore a string three
+ag -v PATTERN
