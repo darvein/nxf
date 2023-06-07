@@ -1,0 +1,21 @@
+# AWS SQS Receive Message
+aws sqs receive-message --queue-url https://sqs.$region.amazonaws.com/$account_id/$queue_name
+
+# AWS SNS Subscribe
+aws sns subscribe --topic-arn $TOPIC_ARN --protocol $PROTOCOL --notification-endpoint $ENDPOINT
+
+# AWS S3 ls anonymous principal
+aws s3 ls --no-sign-request $S3_BUCKET_PATH
+
+# AWS RDS Manual Snapshot Backup
+aws rds create-db-snapshot \
+  --db-instance-identifier $DB_INSTANCE_IDENTIFIER \
+  --db-snapshot-identifier "snapshot-$(date +'%Y%m%d%H%M%S')" \
+  --region $REGION \
+  --tags Key=TagKey1,Value=TagValue1 Key=TagKey2,Value=TagValue2
+
+# AWS Start EC2 Instances
+aws ec2 start-instances \
+  --instance-ids $INSTANCE1 $INSTANCE2  \
+  --region us-east-1
+
