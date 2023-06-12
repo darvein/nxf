@@ -1,0 +1,7 @@
+# AWS RDS Manual Snapshot Backup
+aws rds create-db-snapshot \
+  --db-instance-identifier $DB_INSTANCE_IDENTIFIER \
+  --db-snapshot-identifier "snapshot-$(date +'%Y%m%d%H%M%S')" \
+  --region $REGION \
+  --tags Key=TagKey1,Value=TagValue1 Key=TagKey2,Value=TagValue2
+
