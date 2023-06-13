@@ -1,0 +1,50 @@
+# Docker basics
+docker ps -al
+docker stop my-app
+docker rm <container id>
+
+docker run hello-world
+docker run -d -p 4000:80 --name my-app node-app:0.1
+
+docker images
+docker rmi <images id>
+
+docker build -t node-app:0.1 .
+
+docker tag $IMAGE:$TAG $REPO/$IMAGE:$TAG
+
+docker push gcr.io/qwiklabs-gcp-ed2b8cc2832909a1/node-app:0.2
+docker pull gcr.io/qwiklabs-gcp-ed2b8cc2832909a1/node-app:0.2
+
+docker logs -f --tail=0 $CONTAINER_ID
+
+docker exec -it $CONTAINER_ID bash
+
+# Inspect 
+docker inspect $CONTAINER_ID		# Informacion del sistema del contenedor
+docker inspect --format='{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' $CONTAINER_ID	# IP Local del container
+-----
+
+# docker cleanup
+## Way 1 cleanup
+docker rm $(docker ps -q -f status=exited)
+docker volume rm $(docker volume ls -qf dangling=true)
+docker rmi $(docker images --filter "dangling=true" -q --no-trunc)
+
+## Way 2 cleanup
+docker stop $(docker ps -aq)
+docker rm $(docker ps -aq)
+docker rmi -f $(docker images -q)
+docker volume prune
+
+docker stop $(docker ps -aq); 
+docker rm $(docker ps -aq)
+
+docker stop $(docker ps -q)
+docker rm $(docker ps -aq)
+docker rmi $(docker images -aq) # remove remaining images
+
+## Fatality way
+docker system prune -a
+docker system prune -a --volumes
+-----

@@ -1,0 +1,28 @@
+# tcpdump basics
+tcpdump -ni tun0 icmp
+-----
+
+# Tcpdump stuff
+tcpdump -vv -x -X -s 1500 -i eth1 'port 25'
+tcpdump -vv -x -X -s 1500 'port 36961'
+
+
+# mass scans
+masscan $TARGET -p80,8080,443 --max-rate 100000 -oG output.txt
+masscan $TARGET -p0-65535 --max-rate 100000 -oG output.txt
+nmap -sS -A -PN -p- --script=http-title $TARGET
+```
+
+## Trying to proctect from DDOS
+
+```bash
+# check concurrent conns
+netstat -ntu|awk '{print $5}'|cut -d: -f1 -s|sort|uniq -c|sort -nk1 -r | head
+
+# check the network payloads
+tcpdump -A -nvvvX -s 0 'host 3.131.222.145'
+
+# or check the http payloads
+tcpdump -A -s 0 'host 3.131.222.145 and tcp port 80 and (((ip[2:2] - ((ip[0]&0xf)<<2)) - ((tcp[12]&0xf0)>>2)) != 0)'
+
+-----

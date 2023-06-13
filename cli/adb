@@ -1,0 +1,13 @@
+# adb basics
+adb devices
+adb shell
+
+adb push '/home/hardik.trivedi/Downloads/one.jpg' '/data/local/'
+adb push ~/.ssh/botija /storage/emulated/0/d/
+
+## camera
+/storage/emulated/0/DCIM/Camera
+
+## storage
+/storage/emulated/0
+-----

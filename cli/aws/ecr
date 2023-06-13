@@ -1,0 +1,28 @@
+# ecr basics
+aws ecr get-login-password --region us-west-2 | docker login --username AWS --password-stdin 123456.dkr.ecr.us-west-2.amazonaws.com
+aws ecr get-login-password --region us-west-2 | docker login --username AWS --password-stdin 539374710386.dkr.ecr.us-west-2.amazonaws.com
+
+aws ecr get-login-password --region us-west-2 | docker login --username AWS --password-stdin 103964464252.dkr.ecr.us-west-2.amazonaws.comLL
+aws ecr get-login-password --region us-west-2 | docker login --username AWS --password-stdin 497976830529.dkr.ecr.us-west-2.amazonaws.com
+
+# zurra
+aws ecr get-login-password --region us-west-2 | docker login --username AWS --password-stdin 668000696589.dkr.ecr.us-west-2.amazonaws.com
+
+#aws ecr get-login
+docker login –u AWS –p password –e none https://aws_account_id.dkr.ecr.us-west-2.amazonaws.com
+
+docker run --rm amazon/aws-cli ecr get-login-password --region us-west-2 | docker login --username AWS --password-stdin 539374710386.dkr.ecr.us-west-2.amazonaws.com
+```
+
+Issue on nodejs watcher files:
+
+```bash
+echo fs.inotify.max_user_watches=524288 | sudo tee -a /etc/sysctl.conf
+sudo sysctl -p
+```
+## ECR
+
+```bash
+# Check metadata info of a particular image:
+aws ecr describe-images --repository-name nd/data-archiver-v2  --image-ids "imageTag=latest"
+-----

@@ -1,0 +1,9 @@
+# Sign a CSR
+aws acm-pca issue-certificate \
+      --certificate-authority-arn arn:aws:acm-pca:us-east-1:521840836442:\
+      certificate-authority/2280fe40-b791-4a53-b49e-27613564ca3b \
+      --csr cert.csr \
+      --signing-algorithm "SHA256WITHRSA" \
+      --validity Value=365,Type="DAYS" \
+      --idempotency-token 1234 
+-----

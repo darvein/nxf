@@ -1,0 +1,7 @@
+# mongo basics
+mongo "mongodb+srv://jacob:xxx@app-qa.5rmyn.mongodb.net/synapbox_qa" --username jacob
+show dbs # list dbs
+show users
+show roles
+show collections
+-----

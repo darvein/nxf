@@ -1,0 +1,4 @@
+# rabbitmqctl basics
+rabbitmqctl cluster_status
+rabbitmqctl list_queues -p $VHOST_NAME
+-----

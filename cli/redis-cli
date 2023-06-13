@@ -1,0 +1,11 @@
+# Redis basics
+## scan all keys
+redis-cli -c -h $HOST -p 6379 --scan --pattern '*'
+
+## or in shell
+KEYS *
+
+## delete all keys
+FLUSHDB
+FLUSHALL
+-----

@@ -1,4 +1,14 @@
 # Host scan quick and aggresive
 nmap -nv -Pn -sV -O -T4 -oA nmap-scan monitorstwo
 
+# Scan all tcp ports 
+nmap -p- --min-rate 10000 -oA scans/nmap-alltcp $IP
+
+# Run tcp scripts on 22 and 80 ports
+nmap -p 22,80 -sCV -oA scans/nmap-tcpscripts $IP
+
+# Discover TCP ports and scan results
+nmap -nv -Pn -sV -sC -O -T4 -oA nmap-scan 10.129.36.200
+
+nmap -P0 -n -p1-65535 --open --reason -sS -T5 --min-parallelism 65535 --max-retries 2
 -----

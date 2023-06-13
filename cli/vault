@@ -1,0 +1,7 @@
+# vault basics
+vault ls secret/leadsapi
+vault read secret/leadsapi/newrelic
+vault write secret/users password=a341xr09
+vault kv put secret/leadsapi/auth_idp cert=@auth_idp_cert.pem private=@auth_idp_private.key
+vault write secret/users password=a341xr09
+-----

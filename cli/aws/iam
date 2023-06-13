@@ -1,0 +1,7 @@
+# iam basics
+# list unassigned mfa devices
+aws iam list-virtual-mfa-devices --assignment-status Unassigned
+
+# Remove unassigned
+aws iam delete-virtual-mfa-device --serial-number arn:aws:iam::191071114540:mfa/amikami@obmedia.co
+-----
