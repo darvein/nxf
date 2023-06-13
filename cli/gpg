@@ -1,0 +1,40 @@
+# Genera las llaves publicas
+gpg --gen-key
+
+# Para ver nuestras llaves p√∫blicas
+gpg --list-public-keys
+
+# Para listar las claves privadas
+gpg --list-secret-keys
+
+# Para exportar una clave
+gpg --export -a "Nombre de Usuario" > publica.key
+wget -O - -o /dev/null  [http://mitm.cl/gpg/ksha.asc](http://mitm.cl/gpg/ksha.asc)  | gpg --import
+
+# Para importar una llave
+gpg --import publica.key
+gpg --allow-secret-key-import --import privada.key
+
+# Borrar una clave p√∫blica
+gpg --delete-key "Nombre Usuario"; gpg --delete-secret-key "Nombre Usuario"
+
+# Para firmar texto plano
+gpg --clearsign
+
+# Codificar un archivo con la llave por defecto
+gpg -e nombre_archivo
+
+# Para decodificar un archivo
+gpg -d nombre_archivo >> archivo_destino
+
+# Codificar con otra llave publica
+gpg -er "UID del destinario" nombre_archivo
+
+# Para firmar un conjunto de archivos
+tar -cf - /archivos/a/encriptar | gpg -e > these-files-here.tgp
+
+# Para desencriptar un conjunto de archivos
+gpg -d < these-files-here.tgp | tar -xvf -
+cr
+
+-----

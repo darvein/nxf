@@ -2,25 +2,37 @@
 
 # Define usage function
 usage(){
-  echo "Usage: $0 filepath pattern"
+  echo "Usage: $0 directory filepath pattern"
+  echo "directory: s (snippets) or c (cli)"
   echo "filepath: pattern to match in the file names"
   echo "pattern: pattern to search in the file content"
   exit 1
 }
 
 # Check number of arguments
-if [ $# -lt 1 ] || [ $# -gt 2 ]; then
+if [ $# -lt 2 ]; then
   usage
 fi
 
-# Define file path pattern and pattern to search
-FILEPATH_PATTERN="${1}"
-PATTERN="${2:-}"  # Default to empty string if not provided
+# Define directory, file path pattern, and pattern to search
+DIRECTORY="${1}"
+FILEPATH_PATTERN="${2}"
+PATTERN="${3:-}"
+
+# Set the search directory based on the input parameter
+if [ "$DIRECTORY" = "s" ]; then
+  SEARCH_DIRECTORY="snips"
+elif [ "$DIRECTORY" = "c" ]; then
+  SEARCH_DIRECTORY="cli"
+else
+  echo "Invalid directory option. Please use 's' for snippets or 'c' for cli."
+  exit 1
+fi
 
 SCRIPT_PATH=$(dirname "$(readlink -f "$0")")
 
 # Find files that match the file path pattern and process them
-find "${SCRIPT_PATH}/snippets" -type f -path "*${FILEPATH_PATTERN}*" |
+find "${SCRIPT_PATH}/${SEARCH_DIRECTORY}" -type f -path "*${FILEPATH_PATTERN}*" |
 while read -r file; do
   awk -v pattern="${PATTERN}" -v RS='-----' '
     BEGIN {IGNORECASE = 1}

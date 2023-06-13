@@ -1,0 +1,22 @@
+# Saltstack basics
+salt 'hyperleap-populate-*' test.ping
+salt 'hyperleap-populate-*' cmd.run 'ls -l /etc'
+
+salt -v foobar state.sls ssh,users
+
+52.8.143.192
+sudo salt -t 300 -v cross-campus-backend-prod state.sls ssh,users
+```
+
+```bash
+# list all minions
+salt-key list
+
+# run specific command
+salt -L 'es1,es2' cmd.run 'rm -rf /etc/sensu/conf.d/metric_*'
+
+# run specific playbook
+salt -L 'goosebumps-prod2-game,goosebumps-prod2-main' state.sls users
+
+salt -L 'backup' state.sls users
+-----

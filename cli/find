@@ -1,0 +1,11 @@
+# Find basics
+find . -user root -perm 777
+find / -name "[0-9]*"
+find . -name ".[a-b]*"
+find / -size 0 -exec ls {} \;
+find . -size 1033c
+find . -type f -readable -size 1033c ! -executable
+find . -user foo -group bar
+find . -gid 1 -uid 1
+find /home -name .bashrc -exec grep $PATTERN {} \;
+---

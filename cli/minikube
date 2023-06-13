@@ -1,0 +1,10 @@
+
+# Minikube basics
+minikube start --nodes=3 --extra-config=apiserver.service-node-port-range=1-65535 --driver=virtualbox
+minikube start
+minikube node add --worker
+minikube service [-n NAMESPACE] [--url] NAME
+kubectl config use-context minikube
+kubectl get pods --context=minikube
+minikube dashboard
+minikube stop

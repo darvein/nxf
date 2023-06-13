@@ -1,0 +1,9 @@
+# Nodes basics
+kubectl get nodes
+kubectl describe nodes
+kubectl describe node kubminn-20sc8
+kubectl describe nodes | grep -v "(0%)" | grep "%)"
+kubectl get nodes -o jsonpath='{.items[*].status.addresses[?(@.type=="ExternalIP")].address}' # Lista los ExternalIPs de todos los nodos
+JSONPATH='{range .items[*]}{@.metadata.name}:{range @.status.conditions[*]}{@.type}={@.status};{end}{end}' \
+ && kubectl get nodes -o jsonpath="$JSONPATH" | grep "Ready=True" # Lista de todos los nodos listos
+kubectl get nodes --sort-by=".metadata.creationTimestamp"

@@ -1,0 +1,23 @@
+# Pods basics
+kubectl get pods --all-namespaces             # List all pods in all namespaces
+kubectl get pods -o wide                      # List all pods in the namespace, with more details
+kubectl get pods --include-uninitialized      # List all pods in the namespace, including uninitialized ones
+kubectl get pods --sort-by=la parte '.status.containerStatuses[0].restartCount' # listar pods por RestartCount
+kubectl get pods --selector=app=cassandra rc -o jsonpath='{.items[*].metadata.labels.version}' # Ver el label `version` dede todas las instancias `cassandra`
+kubectl get pods -o json | jq '.items[].spec.containers[].env[]?.valueFrom.secretKeyRef.name' | grep -v null | sort | uniq # listar secrets usados en un Pod
+kubectl get pods -n $NAMESPACE
+kubectl describe pod FOOBAR -n $NAMESPACE 
+kubectl get pods --all-namespaces
+kubectl get pods -l origin=voyager --all-namespaces
+
+-----
+
+# Kubectl delete a pod
+kubectl -n $NAMESPACE delete pod $POD_NAME
+
+-----
+
+# Kubectl describe a pod
+kubectl -n $NAMESPACE describe pod $POD_NAME
+
+-----

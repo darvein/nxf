@@ -1,0 +1,20 @@
+# Lsof basics
+lsof -a -u root -d txt
+lsof -p ^1
+lsof -i tcp/udp
+lsof -i :80
+lsof -i tcp:80
+lsof -d txt/mem       # lsof -d 0-2
+
+lsof -i # show all connections
+lsof -Pi
+lsof -i6 # ipv6 connections
+lsof -i -sTCP:LISTEN # listen state
+lsof -a -u apache -i # all conenctions by user apache
+
+lsof /var/log/messages # who is using this file
+lsof +D /usr/lib
+lsof -u apache # files opened by apache user
+
+lsof -p 666 # opened files by a PID
+lsof -c sendmail # opened files by sendmail

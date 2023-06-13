@@ -1,0 +1,3 @@
+# ltrace basics
+ltrace -e fwrite_unlocked ls
+ltrace -c /usr/bin/id # summary of libraries

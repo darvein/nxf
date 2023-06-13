@@ -1,0 +1,3 @@
+# Run basics
+kubectl run nginx --image=nginx:1.10.0
+kubectl run hello-node --image=gcr.io/$PROJECT_ID/hello-node:v1 --port=8080

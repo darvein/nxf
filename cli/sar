@@ -1,0 +1,7 @@
+# sar basics
+sar -u      ; cpu stuff
+sar -r      ; ram 
+sar -S      ; swap
+sar -dp     ; i/o disk partition
+sar -n DEV  ; network usage by device
+sar -s `date +"%T" -d "10 min ago"`

@@ -1,0 +1,16 @@
+# generate custom gpg
+gpg --gen-key --homedir ~/tmp/gpg
+-----
+# export key in ca.asca
+gpg --homedir ~/tmp/gpg --export -a --output ca.asc techops@cnsmeraffs.com
+-----
+# export a secret key
+gpg -a --export-secret-keys > [path-to-secret-key].asc
+-----
+# decrypt a file
+gpg --homedir ~/tmp/gpg --output ConsumerAffairsAffiliateDaily_20201216.csv --decrypt ConsumerAffairsAffiliateDaily_20201216.csv.pgp
+-----
+gpg --homedir ~/tmp/gpg --encrypt --sign --armor -r techops@cnsmeraffs.com foo.txt
+-----
+# export pgp key
+gpg --export -a darvein@gmail.com > darvein.key

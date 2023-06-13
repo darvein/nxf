@@ -1,0 +1,9 @@
+# Service basics
+kubect get svc
+kubectl get services                          # List all services in the namespace
+kubectl get services --sort-by=.metadata.name # List Services Sorted by Name
+kubectl get services -n $NAMESPACE
+kubectl get services $SERVICE_NAME
+kubectl describe services $NAME
+kubectl expose deployment hello-node --type="LoadBalancer"
+kubectl expose deployment nginx --port 80 --type LoadBalancer

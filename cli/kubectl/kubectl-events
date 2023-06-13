@@ -1,0 +1,3 @@
+# Events basics
+kubectl get events --sort-by=.metadata.creationTimestamp # Lista eventos ordenados por timestamp
+kubectl get events -n qa1  | grep x5con

@@ -1,0 +1,7 @@
+# Helm basics
+helm install --name=mysql -f custom_config.yaml --tiler-namespace default stable/mysql 
+helm upgrade --name=mysql -f updated_config.yaml stable/mysql
+helm history --name=mysql
+helm rollback mysql 2
+helm rollback mysql 0	# Rollback to the latest working release version
+helm status mysql

@@ -1,0 +1,6 @@
+# Rollout
+kubectl rollout history deployment/hello
+kubectl rollout pause deployment/hello
+kubectl rollout resume deployment/hello
+kubectl rollout status deployment/hello
+kubectl rollout undo deployment/hello

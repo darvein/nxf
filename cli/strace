@@ -1,0 +1,5 @@
+# Strace basics
+strace -s 2000 -f ./traceme
+strace -c [command]		# summary
+strace -p 1,2,3... -e trace=close,open -Ttrf -iq -o output.strace
+strace -o /tmp/strace.out -s 2000  -fp 12152 # -e raw=select

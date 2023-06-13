@@ -1,0 +1,7 @@
+# Ps basics
+ps -e 						# all processes
+ps aux
+ps -C firefox-bin
+ps axo pid,ppid,command 
+ps o pid,ppid,command,uid
+pstree -p | grep httpd

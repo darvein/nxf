@@ -1,0 +1,4 @@
+# Describe basics
+kubectl describe nodes my-node
+kubectl describe pods my-pod
+kubectl describe po mbatch-pod-3089507267-3gxxq -n $NAMESPACE

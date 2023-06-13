@@ -1,0 +1,9 @@
+# Objdump basics
+objdump -f a.out            # file headers
+objdump -r a.out            # check offsets
+objdump -h a.out            # sections
+objdump -j .text -s a.out   # check content of section
+objdump -tT a.out           # symbols
+objdump -p a.out            # private symbols
+objdump -D a.out
+objdump -S a.out

@@ -1,4 +1,2 @@
 # Kubectl execute command in pod
 kubectl -n $NAMESPACE exec -it $POD_NAME -- $COMMAND_TO_RUN
-
------

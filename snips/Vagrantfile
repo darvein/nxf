@@ -1,0 +1,48 @@
+# Vagrant multi machine deployment
+Vagrant.configure("2") do |config|
+
+  config.vm.provision "shell", inline: <<-SHELL
+  echo "10.0.0.10  master-node01" >> /etc/hosts
+  echo "10.0.0.11  worker-node02" >> /etc/hosts
+  echo "10.0.0.12  worker-node03" >> /etc/hosts
+  SHELL
+
+  config.vm.box = "bento/ubuntu-21.10"
+  config.vm.box_check_update = true
+  config.vm.synced_folder "shared/", "/shared"
+
+  config.vm.define "k8s01" do |k8s01|
+    k8s01.vm.hostname = "k8s01"
+    k8s01.vm.network :private_network, ip: "10.0.0.10"
+
+    k8s01.vm.provider :virtualbox do |v|
+      v.customize ["modifyvm", :id, "--memory", 2000] # 1.7Gb minimum for kubernetes
+      v.memory = 4048
+      v.cpus = 2
+    end
+  end
+
+  config.vm.define "k8s02" do |k8s02|
+    k8s02.vm.hostname = "k8s02"
+    k8s02.vm.network :private_network, ip: "10.0.0.11"
+
+    k8s02.vm.provider :virtualbox do |v|
+      v.customize ["modifyvm", :id, "--memory", 2000] # 1.7Gb minimum for kubernetes
+      v.memory = 2048
+      v.cpus = 1
+    end
+  end
+
+  config.vm.define "k8s03" do |k8s03|
+    k8s03.vm.hostname = "k8s03"
+    k8s03.vm.network :private_network, ip: "10.0.0.12"
+
+    k8s03.vm.provider :virtualbox do |v|
+      v.customize ["modifyvm", :id, "--memory", 2000] # 1.7Gb minimum for kubernetes
+      v.memory = 2048
+      v.cpus = 1
+    end
+  end
+
+end
+-----

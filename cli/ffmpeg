@@ -1,0 +1,6 @@
+# Remove audio from video
+ffmpeg -i in.mp4 -c copy -an out.mp4
+-----
+# Compress wav to mp3 good quality
+ffmpeg -i 2022_10_27_11_26_36.wav -qscale:a 0 test/2022_10_27_11_26_36.wav.mp3
+for i in `find . -name '*.wav'`; do ffmpeg -i $i -qscale:a 0 $i.mp3; done

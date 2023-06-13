@@ -1,0 +1,2 @@
+# top pod
+kubectl top pod $POD_NAME
