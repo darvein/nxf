@@ -4,3 +4,14 @@ aws ec2 start-instances \
   --region us-east-1
 
 -----
+
+# Get sg rules
+aws ec2 describe-security-group-rules \
+  --filter Name="group-id",Values="$(
+  aws ec2 describe-instances --instance-ids i-05b3d5c880835498b \
+    | jq '.. | .GroupId? // empty' -r \
+    | sort -u | tr '\n' ',' | sed 's/,$//'\
+    )" \
+    | jq -r '.[][] | [.FromPort, .CidrIpv4, .Description, if .IsEgress == true then "egress" else "ingress" end, .GroupId]'
+
+-----
