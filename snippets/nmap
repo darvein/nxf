@@ -1,3 +1,4 @@
 # Host scan quick and aggresive
 nmap -nv -Pn -sV -O -T4 -oA nmap-scan monitorstwo
 
+-----

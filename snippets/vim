@@ -4,3 +4,4 @@ vimgrep /foobar/ %
 :cnext (@:)
 :close
 
+-----

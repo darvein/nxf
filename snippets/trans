@@ -1,3 +1,4 @@
 # translate single word, brief mode
 trans -b fr:en lexique
 
+-----

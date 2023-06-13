@@ -1,0 +1,9 @@
+# Kubectl delete a pod
+kubectl -n $NAMESPACE delete pod $POD_NAME
+
+-----
+
+# Kubectl describe a pod
+kubectl -n $NAMESPACE describe pod $POD_NAME
+
+-----

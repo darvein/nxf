@@ -1,3 +1,4 @@
 # AWS S3 ls anonymous principal
 aws s3 ls --no-sign-request $S3_BUCKET_PATH
 
+-----
