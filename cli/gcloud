@@ -1,0 +1,36 @@
+# gcloud basics
+gcloud auth login --brief --activate		# Autenticarse con GCP
+gcloud config set account `ACCOUNT`
+
+gcloud auth revoke test@gmail.com
+gcloud auth list
+gcloud config list project # list projects
+
+# auth to gcloud with service account
+gcloud auth activate-service-account --project=someproject --key-file=gcpcmdlineuser.json
+gcloud info
+-----
+
+# gcloud computing
+# list of instances
+gcloud compute instances list
+
+# create instance
+gcloud compute instances create nxb-vpn nxb-app1 --zone=us-west1-a
+
+# ssh into server
+gcloud compute ssh nxb-vpn --zone=us-west1-a
+-----
+
+# gcloud networking
+gcloud compute firewall-rules create $rule_name \
+  --allow tcp:9090 \
+  --source-tags=${list-of-your-instances-names} \
+  --source-ranges=0.0.0.0/0 \
+  --description="<your-description-here>"
+
+# List all firweall rules
+gcloud compute firewall-rules list
+gcloud compute firewall-rules list --uri
+gcloud compute firewall-rules list --sort-by=NETWORK
+-----

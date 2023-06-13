@@ -1,0 +1,6 @@
+# Ansible basics
+ansible all -m ping -u fulanito --sudo
+ansible all -a "/bin/echo helloo"
+ansible production -a "/bin/echo helloo"
+ansible -i all.ini -u ubuntu oregon -a "sudo cat /root/.bash_history /home/ubuntu/.bash_history /home/devops/.bash_history"
+-----

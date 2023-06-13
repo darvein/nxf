@@ -1,0 +1,31 @@
+# ansible playbook basics
+eval `ssh-agent` && ssh-add
+ansible-playbook \
+	--vault-password-file=~/.ssh/vaultpw \
+	-i msops.aws_ec2.yml common.yml \
+	--limit=tag_Name_msops_prometheus0 \
+	--user ubuntu \
+	--key-file ~/.ssh/msops-terraform-temporary-key \
+	-Kk
+
+eval `ssh-agent` && ssh-add
+ansible-playbook \
+	--vault-password-file=~/.ssh/vaultpw \
+	-i msops.aws_ec2.yml webservers.yml \
+	--key-file ~/.ssh/id_rsa \
+	-Kk
+	
+ansible-playbook \
+	--vault-password-file=~/.ssh/vaultpw \
+	-i cadev.aws_ec2.yml common.yml \
+	--limit=tag_Name_cadev_build0 \
+	--key-file ~/.ssh/id_rsa \
+	-Kk
+	
+
+ansible-playbook \
+	--vault-password-file=~/.ssh/vaultpw \
+	-i inventory infra0.yml \
+	--user druiz \
+	-Kk
+-----
