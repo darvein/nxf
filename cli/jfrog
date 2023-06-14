@@ -1,3 +1,2 @@
 # Curl jfrog access
 curl -s -w "%{http_code}" -H "Authorization: Bearer $TOKEN" $JFROG_HOST/access/api/v1/projects
------

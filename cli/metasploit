@@ -7,4 +7,3 @@ show targets
 search type:exploit platform:windows flash
 set SRV 80
 exploit
------

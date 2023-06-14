@@ -1,4 +1,2 @@
 # AWS SNS Subscribe
 aws sns subscribe --topic-arn $TOPIC_ARN --protocol $PROTOCOL --notification-endpoint $ENDPOINT
-
------

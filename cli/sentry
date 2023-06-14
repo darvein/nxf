@@ -1,7 +1,2 @@
-/* vim: set ft=bash : */
------
-
-
 # Check sentry queues
 docker exec sentry-worker sentry queues list
------

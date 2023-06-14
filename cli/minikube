@@ -1,4 +1,3 @@
-
 # Minikube basics
 minikube start --nodes=3 --extra-config=apiserver.service-node-port-range=1-65535 --driver=virtualbox
 minikube start

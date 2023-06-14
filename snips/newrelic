@@ -3,4 +3,3 @@
 SELECT count(*) FROM ErrorTrace  WHERE httpResponseCode  = '500'
  
 SELECT timestamp, SERVER_NAME, error.class, error.message, exceptionClass, parameters, path, `request.headers.User-Agent`, request.method, request_uri  FROM ErrorTrace  WHERE httpResponseCode  = '500' SINCE 7 days AGO
------

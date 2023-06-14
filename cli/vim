@@ -3,5 +3,3 @@ vimgrep /foobar/ %
 :cw or :copen
 :cnext (@:)
 :close
-
------

@@ -1,4 +1,3 @@
 # papertrail basics
 papertrail Devtest -f ". -INFO"
 papertrail Devtest -f ". -INFO -data-archiver"
------

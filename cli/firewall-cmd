@@ -5,13 +5,10 @@ firewall-cmd --zone=work --list-all
 firewall-cmd --get-default-zone
 firewall-cmd --set-default-zone=work
 firweall-cmd --list-services
-
 -----
-
 # Firewall add remove
 firewall-cmd --add-service=http --permanent
 firewall-cmd --remove-service=http --permanent
 firweall-cmd --add-port=331/tcp --permanent
 firweall-cmd --remove-port=331/tcp --permanent
 firewall-cmd --reload
-

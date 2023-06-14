@@ -1,4 +1,3 @@
 # John basics
 john $FILE --format-descrypt
 john $FILE --format=md5crypt
------

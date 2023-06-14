@@ -6,4 +6,3 @@ aws acm-pca issue-certificate \
       --signing-algorithm "SHA256WITHRSA" \
       --validity Value=365,Type="DAYS" \
       --idempotency-token 1234 
------

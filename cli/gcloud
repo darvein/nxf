@@ -10,7 +10,6 @@ gcloud config list project # list projects
 gcloud auth activate-service-account --project=someproject --key-file=gcpcmdlineuser.json
 gcloud info
 -----
-
 # gcloud computing
 # list of instances
 gcloud compute instances list
@@ -21,7 +20,6 @@ gcloud compute instances create nxb-vpn nxb-app1 --zone=us-west1-a
 # ssh into server
 gcloud compute ssh nxb-vpn --zone=us-west1-a
 -----
-
 # gcloud networking
 gcloud compute firewall-rules create $rule_name \
   --allow tcp:9090 \
@@ -33,4 +31,3 @@ gcloud compute firewall-rules create $rule_name \
 gcloud compute firewall-rules list
 gcloud compute firewall-rules list --uri
 gcloud compute firewall-rules list --sort-by=NETWORK
------

@@ -28,4 +28,3 @@ ansible-playbook \
 	-i inventory infra0.yml \
 	--user druiz \
 	-Kk
------

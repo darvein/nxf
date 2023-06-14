@@ -24,7 +24,6 @@ docker exec -it $CONTAINER_ID bash
 docker inspect $CONTAINER_ID		# Informacion del sistema del contenedor
 docker inspect --format='{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' $CONTAINER_ID	# IP Local del container
 -----
-
 # docker cleanup
 ## Way 1 cleanup
 docker rm $(docker ps -q -f status=exited)
@@ -47,4 +46,3 @@ docker rmi $(docker images -aq) # remove remaining images
 ## Fatality way
 docker system prune -a
 docker system prune -a --volumes
------

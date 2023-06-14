@@ -4,5 +4,3 @@ def fibonacci(n):
     b = 1
 
 print(fibonacci(9))
-
------

@@ -4,4 +4,3 @@ show dbs # list dbs
 show users
 show roles
 show collections
------
