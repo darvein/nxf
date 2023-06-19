@@ -1,0 +1,86 @@
+# aws autoscaling
+resource "aws_autoscaling_group" "bar" {
+  name                      = "foobar3-terraform-test"
+  max_size                  = 5
+  min_size                  = 2
+  desired_capacity          = 4
+  health_check_grace_period = 300
+  health_check_type         = "EC2" # ELB
+  force_delete              = true
+  placement_group           = aws_placement_group.test.id
+  vpc_zone_identifier       = [aws_subnet.example1.id, aws_subnet.example2.id]
+
+  #launch_configuration      = aws_launch_configuration.foobar.name
+  launch_template {
+    id      = aws_launch_template.foobar.id
+    version = "$Latest"
+  }
+
+  mixed_instances_policy {
+    launch_template {
+      launch_template_specification {
+        launch_template_id = aws_launch_template.example.id
+      }
+
+      override {
+        instance_type     = "c4.large"
+          weighted_capacity = "3"
+      }
+
+      override {
+        instance_type     = "c3.large"
+          weighted_capacity = "2"
+      }
+    }
+  }
+
+  initial_lifecycle_hook {
+    name                 = "foobar"
+    default_result       = "CONTINUE"
+    heartbeat_timeout    = 2000
+    lifecycle_transition = "autoscaling:EC2_INSTANCE_LAUNCHING"
+
+    notification_metadata = jsonencode({
+      foo = "bar"
+    })
+
+    notification_target_arn = "arn:aws:sqs:us-east-1:444455556666:queue1*"
+    role_arn                = "arn:aws:iam::123456789012:role/S3Access"
+  }
+
+  warm_pool {
+    pool_state                  = "Hibernated" # Stopped
+    min_size                    = 1
+    max_group_prepared_capacity = 10
+
+    instance_reuse_policy {
+      reuse_on_scale_in = true
+    }
+  }
+
+  timeouts {
+    delete = "15m"
+  }
+
+  tag {
+    key                 = "lorem"
+    value               = "ipsum"
+    propagate_at_launch = true
+  }
+
+  # If you want this ASG to host EKS Cluster
+  tag {
+    key                 = "kubernetes.io/cluster/${module.eks.cluster_id}"
+    value               = "owned"
+    propagate_at_launch = true
+  }
+
+  dynamic "tag" {
+    for_each = var.extra_tags
+    content {
+      key                 = tag.value.key
+      propagate_at_launch = tag.value.propagate_at_launch
+      value               = tag.value.value
+    }
+  }
+}

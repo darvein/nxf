@@ -1,0 +1,3 @@
+# Search Github repositories
+gh search repos --sort stars $KEYWORDS
+gh search repos --sort updated Searchor exploit
