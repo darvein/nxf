@@ -6,3 +6,4 @@ kubectl logs -l app=x5con-pod -n qa1
 kubectl logs  -l app=$HELM_NAME -n $NAMESPACE
 kubectl -n prod  logs deploy/zurra-api-prod
 kubectl logs -f -l app.kubernetes.io/instance=aws-node-termination-handler -n kube-system --all-containers --max-log-requests 20 
+kubectl -n default logs -l component=taskmanager -f --max-log-requests 99999

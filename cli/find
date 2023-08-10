@@ -8,3 +8,6 @@ find . -type f -readable -size 1033c ! -executable
 find . -user foo -group bar
 find . -gid 1 -uid 1
 find /home -name .bashrc -exec grep $PATTERN {} \;
+
+# find directories with open permissions
+find / -type d -perm /020 -not -perm /040 2>/dev/null

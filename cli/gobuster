@@ -1,0 +1,2 @@
+# gobuster directories
+gobuster dir -w /usr/share/dirb/wordlists/big.txt -t 50 -b 404,403 -u $URL
