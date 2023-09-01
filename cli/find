@@ -11,3 +11,9 @@ find /home -name .bashrc -exec grep $PATTERN {} \;
 
 # find directories with open permissions
 find / -type d -perm /020 -not -perm /040 2>/dev/null
+
+# find files with setuid bit set
+find / -type f -perm -4000 2>/dev/null
+
+# find files with write permissions to group $GROUP
+find / -type f -perm -0200 -group $GROUP 2>/dev/null

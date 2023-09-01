@@ -1,0 +1,5 @@
+# search files that end with a set of type files and status code 200,302
+ffuf -w /usr/share/seclists/Discovery/DNS/subdomains-top1million-5000.txt -u http://gofer.htb/FUZZ -e .aspx,.html,.php,.txt -mc 200,302
+
+# search for a vhost
+ffuf -w /usr/share/seclists/Discovery/DNS/subdomains-top1million-5000.txt -u http://gofer.htb/ -H "Host: FUZZ.gofer.htb" -fw 3913

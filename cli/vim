@@ -3,3 +3,15 @@ vimgrep /foobar/ %
 :cw or :copen
 :cnext (@:)
 :close
+
+# Folding
+zo	open current fold
+zO	recursively open current fold
+zc	close current fold
+zC	recursively close current fold
+za	toggle current fold
+zA	recursively open/close current fold
+zm	reduce foldlevel by one
+zM	close all folds
+zr	increase foldlevel by one
+zR	open all folds
