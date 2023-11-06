@@ -4,3 +4,6 @@ terraform workspace list
 terraform select $WS
 terraform plan -var-file=vars/qa.tfvars -var-file=../global.tfvars
 terraform apply
+
+terraform init -backend-config=backend-config.hcl
+terraform apply -var-file=../vars/custom.tfvars

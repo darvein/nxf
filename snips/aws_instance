@@ -1,0 +1,42 @@
+# terraform ec2 instance template
+resource "aws_instance" "example" {
+  ami                         = "ami-0c94855ba95c574c8"
+  instance_type               = "t2.micro"
+  key_name                    = "my_key_pair"
+  subnet_id                   = "subnet-0bb1c79de3EXAMPLE"
+  vpc_security_group_ids      = ["sg-0a20c79deaEXAMPLE"]
+  ebs_optimized               = false
+  disable_api_termination     = false
+  iam_instance_profile        = "my_iam_instance_profile"
+  monitoring                  = true
+  private_ip                  = "10.0.0.12"
+  associate_public_ip_address = true
+  get_password_data           = false
+
+  root_block_device {
+    delete_on_termination = true
+    volume_size           = 20
+    volume_type           = "gp2"
+    iops                  = 100
+  }
+
+  ebs_block_device {
+    device_name           = "/dev/sdh"
+    snapshot_id           = "snap-01234567890abcdef"
+    delete_on_termination = false
+    volume_size           = 50
+    volume_type           = "io1"
+    iops                  = 200
+    encrypted             = true
+  }
+
+  tags        = merge({ "Name" = var.name }, var.tags)
+
+  user_data = templatefile("${path.module}/user_data.sh", {
+    name = "World"
+  })
+
+  lifecycle {
+    create_before_destroy = true
+  }
+}
