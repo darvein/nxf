@@ -1,1 +1,4 @@
-# tltr_commands
+# Code snippets navigator
+
+It uses `fzf`.
+
