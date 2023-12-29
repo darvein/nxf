@@ -1,0 +1,6 @@
+# Psql connect
+psql -h $HOST -U $USER $DBNAME
+
+# psql cli
+\c dbname # connect to database
+\dt # list tables

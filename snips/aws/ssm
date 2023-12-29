@@ -1,0 +1,9 @@
+# ECS Fargate Execute command
+aws ecs execute-command  \
+    --region $REGION \
+    --cluster $CLUSTER \
+    --task $TASK_ID \
+    --container $CNT_NAME \
+    --command "/bin/bash" \
+    --interactive
+-----

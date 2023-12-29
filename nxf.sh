@@ -11,12 +11,14 @@ usage(){
 
 # Check number of arguments
 if [ $# -lt 1 ]; then
-  usage
+  #usage
+  echo -e "Huh?: \c"
+  read -r FILEPATH_PATTERN_INPUT
 fi
 
 # Define directory, file path pattern, and pattern to search
 DIRECTORY="snips"
-FILEPATH_PATTERN="${1}"
+FILEPATH_PATTERN="${1:-$FILEPATH_PATTERN_INPUT}"
 
 SCRIPT_PATH=$(dirname "$(readlink -f "$0")")
 
@@ -35,3 +37,8 @@ while read -r file; do
     }' "${file}"
 done | fzf --preview "${SCRIPT_PATH}/nxd.sh $DIRECTORY $FILEPATH_PATTERN {}" \
   | xargs -I{} ~/work/nextbrave/tltr/nxd.sh $DIRECTORY $FILEPATH_PATTERN "{}" | tee >(xsel -ib)
+
+CLIPBOARD_CONTENT=$(xsel -ob)
+if [ -n "$CLIPBOARD_CONTENT" ]; then
+    echo "$CLIPBOARD_CONTENT" | nvim -
+fi

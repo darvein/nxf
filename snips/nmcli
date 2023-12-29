@@ -1,0 +1,6 @@
+# nmcli wifi wireless terminal
+nmcli device wifi rescan
+nmcli device wifi list
+nmcli device wifi connect $WIFI_NET password $WIFI_PASS
+nmcli connection show
+nmcli con delete $WIFI_NAME

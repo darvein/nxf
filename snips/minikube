@@ -7,3 +7,17 @@ kubectl config use-context minikube
 kubectl get pods --context=minikube
 minikube dashboard
 minikube stop
+-----
+# Complete minikube start
+ minikube start \
+   --memory=8192 --cpus=4 \
+   --nodes=3 \
+   --driver=virtualbox \
+   --network-plugin=cni --cni=calico \
+   --feature-gates=JobPodFailurePolicy=true,PodDisruptionConditions=true \
+   --insecure-registry "registry.local:5000" \
+   --container-runtime=docker \
+   --service-cluster-ip-range=10.96.0.0/12 \
+   --extra-config=controller-manager.cluster-cidr=10.244.0.0/16 \
+   --extra-config=controller-manager.node-cidr-mask-size-ipv4=24
+-----

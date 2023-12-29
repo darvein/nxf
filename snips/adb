@@ -1,12 +1,19 @@
 # adb basics
 adb devices
 adb shell
+-----
+# Copy sync files
+adb push $SRC $PATH
+adb-sync -R /storage/emulated/0/{DCIM,Recordings} ~/Phone/
 
-adb push '/home/hardik.trivedi/Downloads/one.jpg' '/data/local/'
-adb push ~/.ssh/botija /storage/emulated/0/d/
-
-## camera
+## camera path:
 /storage/emulated/0/DCIM/Camera
 
-## storage
+## storage path:
 /storage/emulated/0
+-----
+# Wifi wireless connect
+adb disconnect
+adb kill-server
+adb tcpip 5555 # adb connect
+adb connect $DEVICE_IP

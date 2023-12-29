@@ -1,0 +1,23 @@
+# Pod Example
+apiVersion: v1
+kind: Pod
+metadata:
+  name: mypod
+spec:
+  volumes:
+  - name: shared-data
+    emptyDir: {}
+
+  containers:
+  - name: container-1
+    image: nginx:latest
+    volumeMounts:
+    - name: shared-data
+      mountPath: /usr/share/data
+
+  - name: busybox
+    image: busybox
+    command: ['sh', '-c', 'while true; do echo hello > /usr/share/data/hello.txt; sleep 10; done']
+    volumeMounts:
+    - name: shared-data
+      mountPath: /usr/share/data

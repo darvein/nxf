@@ -1,0 +1,3 @@
+# ebs list volumes 
+aws ec2 describe-volumes --query 'Volumes[*].{ID:VolumeId, Created:CreateTime, Name:Tags[?Key==`Name`].Value | [0]}' --output json | jq -r '.[] | [.ID, .Created, .Name] '
+-----

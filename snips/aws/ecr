@@ -20,3 +20,6 @@ sudo sysctl -p
 
 ## Check metadata info of a particular image:
 aws ecr describe-images --repository-name nd/data-archiver-v2  --image-ids "imageTag=latest"
+
+# Get current image tags from a given repo
+aws ecr describe-images --repository-name $REPO_NAME | jq '..|.imageTags? // empty'
