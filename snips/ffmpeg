@@ -57,3 +57,7 @@ ffmpeg \
     -pix_fmt yuv420p \
     commentary-$(date +%Y%m%d-%H%M%S).mp4
 -----
+
+# Speed up to 4x
+ffmpeg -i input.mp4 -filter:v "setpts=PTS/5" output.mp4
+-----
