@@ -1,0 +1,888 @@
+# Complete reactjs component example with typescript
+// Main Component: TaskManager.tsx
+import React, { useState, useEffect, useCallback, useMemo, useRef, createContext, useContext, useReducer, FormEvent, ChangeEvent } from 'react';
+
+// ====================================
+// Types & Interfaces
+// ====================================
+
+// Define Task interface
+export interface Task {
+  id: string;
+  title: string;
+  description: string;
+  status: 'pending' | 'in-progress' | 'completed';
+  priority: 'low' | 'medium' | 'high';
+  createdAt: Date;
+  tags: string[];
+}
+
+// Props interface with generics
+interface TaskManagerProps<T> {
+  initialTasks?: T[];
+  title?: string;
+  onTasksChange?: (tasks: T[]) => void;
+  renderCustomHeader?: () => React.ReactNode;
+  className?: string;
+  config?: TaskManagerConfig;
+  children?: React.ReactNode;
+}
+
+// Configuration interface
+interface TaskManagerConfig {
+  allowAddition: boolean;
+  allowDeletion: boolean;
+  allowEdit: boolean;
+  maxTasks?: number;
+  persistToLocalStorage?: boolean;
+  theme?: 'light' | 'dark' | 'system';
+}
+
+// State interface
+interface TaskManagerState {
+  tasks: Task[];
+  filter: 'all' | 'pending' | 'in-progress' | 'completed';
+  searchQuery: string;
+  isLoading: boolean;
+  error: Error | null;
+}
+
+// Action types for reducer
+type TaskAction = 
+  | { type: 'ADD_TASK'; payload: Task }
+  | { type: 'UPDATE_TASK'; payload: { id: string; updatedTask: Partial<Task> } }
+  | { type: 'DELETE_TASK'; payload: string }
+  | { type: 'SET_FILTER'; payload: 'all' | 'pending' | 'in-progress' | 'completed' }
+  | { type: 'SET_SEARCH_QUERY'; payload: string }
+  | { type: 'SET_TASKS'; payload: Task[] }
+  | { type: 'SET_LOADING'; payload: boolean }
+  | { type: 'SET_ERROR'; payload: Error | null };
+
+// Form state interface
+interface TaskFormState {
+  title: string;
+  description: string;
+  priority: 'low' | 'medium' | 'high';
+  tags: string;
+}
+
+// ====================================
+// Context API
+// ====================================
+
+// Create a context for task operations
+interface TaskContextType {
+  tasks: Task[];
+  addTask: (task: Omit<Task, 'id' | 'createdAt'>) => void;
+  updateTask: (id: string, updatedTask: Partial<Task>) => void;
+  deleteTask: (id: string) => void;
+  theme: 'light' | 'dark' | 'system';
+  setTheme: (theme: 'light' | 'dark' | 'system') => void;
+}
+
+// Create the context with a default value
+const TaskContext = createContext<TaskContextType | undefined>(undefined);
+
+// Custom hook to use the task context
+export const useTaskContext = () => {
+  const context = useContext(TaskContext);
+  if (!context) {
+    throw new Error('useTaskContext must be used within a TaskProvider');
+  }
+  return context;
+};
+
+// ====================================
+// Reducer Function
+// ====================================
+
+// Reducer for task state management
+const taskReducer = (state: TaskManagerState, action: TaskAction): TaskManagerState => {
+  switch (action.type) {
+    case 'ADD_TASK':
+      return {
+        ...state,
+        tasks: [...state.tasks, action.payload],
+      };
+    case 'UPDATE_TASK':
+      return {
+        ...state,
+        tasks: state.tasks.map(task => 
+          task.id === action.payload.id 
+            ? { ...task, ...action.payload.updatedTask } 
+            : task
+        ),
+      };
+    case 'DELETE_TASK':
+      return {
+        ...state,
+        tasks: state.tasks.filter(task => task.id !== action.payload),
+      };
+    case 'SET_FILTER':
+      return {
+        ...state,
+        filter: action.payload,
+      };
+    case 'SET_SEARCH_QUERY':
+      return {
+        ...state,
+        searchQuery: action.payload,
+      };
+    case 'SET_TASKS':
+      return {
+        ...state,
+        tasks: action.payload,
+      };
+    case 'SET_LOADING':
+      return {
+        ...state,
+        isLoading: action.payload,
+      };
+    case 'SET_ERROR':
+      return {
+        ...state,
+        error: action.payload,
+      };
+    default:
+      return state;
+  }
+};
+
+// ====================================
+// Custom Hooks
+// ====================================
+
+// Custom hook for form handling
+const useTaskForm = (initialState: TaskFormState, onSubmit: (data: TaskFormState) => void) => {
+  const [formState, setFormState] = useState<TaskFormState>(initialState);
+  const [errors, setErrors] = useState<Partial<Record<keyof TaskFormState, string>>>({});
+  
+  const handleChange = (e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
+    const { name, value } = e.target;
+    setFormState(prev => ({ ...prev, [name]: value }));
+    
+    // Clear error when field is changed
+    if (errors[name as keyof TaskFormState]) {
+      setErrors(prev => ({ ...prev, [name]: undefined }));
+    }
+  };
+  
+  const handleSubmit = (e: FormEvent) => {
+    e.preventDefault();
+    
+    // Validate form
+    const newErrors: Partial<Record<keyof TaskFormState, string>> = {};
+    
+    if (!formState.title.trim()) {
+      newErrors.title = 'Title is required';
+    }
+    
+    if (!formState.description.trim()) {
+      newErrors.description = 'Description is required';
+    }
+    
+    if (Object.keys(newErrors).length > 0) {
+      setErrors(newErrors);
+      return;
+    }
+    
+    // Submit if no errors
+    onSubmit(formState);
+    
+    // Reset form
+    setFormState(initialState);
+  };
+  
+  const resetForm = () => {
+    setFormState(initialState);
+    setErrors({});
+  };
+  
+  return {
+    formState,
+    errors,
+    handleChange,
+    handleSubmit,
+    resetForm,
+  };
+};
+
+// Custom hook for local storage persistence
+const useLocalStorage = <T,>(key: string, initialValue: T): [T, (value: T) => void] => {
+  // Get from local storage then parse stored json or return initialValue
+  const readValue = (): T => {
+    if (typeof window === 'undefined') {
+      return initialValue;
+    }
+    
+    try {
+      const item = window.localStorage.getItem(key);
+      return item ? (JSON.parse(item) as T) : initialValue;
+    } catch (error) {
+      console.warn(`Error reading localStorage key "${key}":`, error);
+      return initialValue;
+    }
+  };
+  
+  // State to store our value
+  const [storedValue, setStoredValue] = useState<T>(readValue);
+  
+  // Return a wrapped version of useState's setter function that persists the new value to localStorage
+  const setValue = (value: T) => {
+    if (typeof window === 'undefined') {
+      console.warn(`Tried setting localStorage key "${key}" even though environment is not a browser`);
+    }
+    
+    try {
+      // Allow value to be a function so we have the same API as useState
+      const valueToStore = value instanceof Function ? value(storedValue) : value;
+      
+      // Save to state
+      setStoredValue(valueToStore);
+      
+      // Save to local storage
+      window.localStorage.setItem(key, JSON.stringify(valueToStore));
+    } catch (error) {
+      console.warn(`Error setting localStorage key "${key}":`, error);
+    }
+  };
+  
+  // Listen for changes to this localStorage key in other tabs/windows
+  useEffect(() => {
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === key && e.newValue) {
+        setStoredValue(JSON.parse(e.newValue) as T);
+      }
+    };
+    
+    window.addEventListener('storage', handleStorageChange);
+    return () => window.removeEventListener('storage', handleStorageChange);
+  }, [key]);
+  
+  return [storedValue, setValue];
+};
+
+// Custom hook for fetching tasks from an API
+const useTaskFetching = () => {
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<Error | null>(null);
+  const [tasks, setTasks] = useState<Task[]>([]);
+  
+  const fetchTasks = useCallback(async () => {
+    setIsLoading(true);
+    setError(null);
+    
+    try {
+      // Simulate API call
+      const response = await new Promise<Task[]>((resolve) => {
+        setTimeout(() => {
+          resolve([
+            {
+              id: '1',
+              title: 'Complete React TypeScript example',
+              description: 'Create a comprehensive example showing React with TypeScript',
+              status: 'in-progress',
+              priority: 'high',
+              createdAt: new Date(),
+              tags: ['react', 'typescript', 'example'],
+            },
+            {
+              id: '2',
+              title: 'Learn advanced TypeScript',
+              description: 'Study advanced TypeScript features like generics and utility types',
+              status: 'pending',
+              priority: 'medium',
+              createdAt: new Date(Date.now() - 86400000), // 1 day ago
+              tags: ['typescript', 'learning'],
+            },
+          ]);
+        }, 1000);
+      });
+      
+      setTasks(response);
+    } catch (err) {
+      setError(err instanceof Error ? err : new Error('An unknown error occurred'));
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+  
+  useEffect(() => {
+    fetchTasks();
+  }, [fetchTasks]);
+  
+  return { tasks, isLoading, error, refetch: fetchTasks, setTasks };
+};
+
+// ====================================
+// Child Components
+// ====================================
+
+// Task Form Component
+interface TaskFormProps {
+  onTaskSubmit: (task: Omit<Task, 'id' | 'createdAt'>) => void;
+  initialValues?: Partial<Omit<Task, 'id' | 'createdAt'>>;
+  buttonText?: string;
+}
+
+const TaskForm: React.FC<TaskFormProps> = ({ 
+  onTaskSubmit, 
+  initialValues,
+  buttonText = 'Add Task' 
+}) => {
+  const initialFormState: TaskFormState = {
+    title: initialValues?.title || '',
+    description: initialValues?.description || '',
+    priority: initialValues?.priority || 'medium',
+    tags: initialValues?.tags?.join(', ') || '',
+  };
+  
+  const { formState, errors, handleChange, handleSubmit } = useTaskForm(
+    initialFormState,
+    (data) => {
+      onTaskSubmit({
+        title: data.title,
+        description: data.description,
+        priority: data.priority,
+        status: 'pending', // Default status
+        tags: data.tags.split(',').map(tag => tag.trim()).filter(Boolean),
+      });
+    }
+  );
+  
+  return (
+    <form onSubmit={handleSubmit} className="task-form">
+      <div className="form-group">
+        <label htmlFor="title">Title</label>
+        <input
+          type="text"
+          id="title"
+          name="title"
+          value={formState.title}
+          onChange={handleChange}
+          className={errors.title ? 'error' : ''}
+        />
+        {errors.title && <span className="error-message">{errors.title}</span>}
+      </div>
+      
+      <div className="form-group">
+        <label htmlFor="description">Description</label>
+        <textarea
+          id="description"
+          name="description"
+          value={formState.description}
+          onChange={handleChange}
+          className={errors.description ? 'error' : ''}
+        />
+        {errors.description && <span className="error-message">{errors.description}</span>}
+      </div>
+      
+      <div className="form-group">
+        <label htmlFor="priority">Priority</label>
+        <select
+          id="priority"
+          name="priority"
+          value={formState.priority}
+          onChange={handleChange}
+        >
+          <option value="low">Low</option>
+          <option value="medium">Medium</option>
+          <option value="high">High</option>
+        </select>
+      </div>
+      
+      <div className="form-group">
+        <label htmlFor="tags">Tags (comma separated)</label>
+        <input
+          type="text"
+          id="tags"
+          name="tags"
+          value={formState.tags}
+          onChange={handleChange}
+          placeholder="react, typescript, etc."
+        />
+      </div>
+      
+      <button type="submit" className="submit-button">
+        {buttonText}
+      </button>
+    </form>
+  );
+};
+
+// Task Item Component (Memoized)
+interface TaskItemProps {
+  task: Task;
+  onStatusChange: (id: string, newStatus: Task['status']) => void;
+  onEdit: (task: Task) => void;
+  onDelete: (id: string) => void;
+}
+
+const TaskItem: React.FC<TaskItemProps> = React.memo(({ 
+  task, 
+  onStatusChange, 
+  onEdit, 
+  onDelete 
+}) => {
+  // Status color mapping
+  const statusColors = {
+    'pending': '#f0ad4e',     // Yellow
+    'in-progress': '#5bc0de', // Blue
+    'completed': '#5cb85c'    // Green
+  };
+  
+  // Priority color mapping
+  const priorityColors = {
+    'low': '#999',      // Gray
+    'medium': '#f0ad4e', // Yellow
+    'high': '#d9534f'   // Red
+  };
+  
+  const handleStatusChange = (e: ChangeEvent<HTMLSelectElement>) => {
+    onStatusChange(task.id, e.target.value as Task['status']);
+  };
+  
+  return (
+    <div className="task-item" style={{ borderLeft: `4px solid ${priorityColors[task.priority]}` }}>
+      <div className="task-header">
+        <h3>{task.title}</h3>
+        <div className="task-controls">
+          <select value={task.status} onChange={handleStatusChange}>
+            <option value="pending">Pending</option>
+            <option value="in-progress">In Progress</option>
+            <option value="completed">Completed</option>
+          </select>
+          <button onClick={() => onEdit(task)} className="edit-btn">Edit</button>
+          <button onClick={() => onDelete(task.id)} className="delete-btn">Delete</button>
+        </div>
+      </div>
+      
+      <p className="task-description">{task.description}</p>
+      
+      <div className="task-meta">
+        <div className="task-status" style={{ backgroundColor: statusColors[task.status] }}>
+          {task.status.replace('-', ' ')}
+        </div>
+        <div className="task-priority">
+          Priority: {task.priority}
+        </div>
+        <div className="task-date">
+          Created: {task.createdAt.toLocaleDateString()}
+        </div>
+      </div>
+      
+      {task.tags.length > 0 && (
+        <div className="task-tags">
+          {task.tags.map(tag => (
+            <span key={tag} className="tag">
+              {tag}
+            </span>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+});
+
+// Error boundary component
+interface ErrorBoundaryProps {
+  fallback: React.ReactNode;
+  children: React.ReactNode;
+}
+
+interface ErrorBoundaryState {
+  hasError: boolean;
+  error: Error | null;
+}
+
+class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundaryState> {
+  constructor(props: ErrorBoundaryProps) {
+    super(props);
+    this.state = { hasError: false, error: null };
+  }
+
+  static getDerivedStateFromError(error: Error): ErrorBoundaryState {
+    return { hasError: true, error };
+  }
+
+  componentDidCatch(error: Error, errorInfo: React.ErrorInfo): void {
+    console.error("Error caught by boundary:", error, errorInfo);
+  }
+
+  render(): React.ReactNode {
+    if (this.state.hasError) {
+      return this.props.fallback;
+    }
+    
+    return this.props.children;
+  }
+}
+
+// ====================================
+// Main Component
+// ====================================
+
+// Default configuration
+const defaultConfig: TaskManagerConfig = {
+  allowAddition: true,
+  allowDeletion: true,
+  allowEdit: true,
+  persistToLocalStorage: true,
+  theme: 'light',
+};
+
+// Main component with generics
+export function TaskManager<T extends Task>({
+  initialTasks = [],
+  title = 'Task Manager',
+  onTasksChange,
+  renderCustomHeader,
+  className = '',
+  config = defaultConfig,
+  children,
+}: TaskManagerProps<T>): React.ReactElement {
+  // Combine default config with passed config
+  const finalConfig = { ...defaultConfig, ...config };
+  
+  // Use theme from config or default
+  const [theme, setTheme] = useState<'light' | 'dark' | 'system'>(finalConfig.theme || 'light');
+  
+  // Setup state with reducer
+  const initialState: TaskManagerState = {
+    tasks: initialTasks as Task[],
+    filter: 'all',
+    searchQuery: '',
+    isLoading: false,
+    error: null,
+  };
+  
+  const [state, dispatch] = useReducer(taskReducer, initialState);
+  
+  // Setup refs
+  const searchInputRef = useRef<HTMLInputElement>(null);
+  const tasksContainerRef = useRef<HTMLDivElement>(null);
+  
+  // Use the custom hooks
+  const [storedTasks, setStoredTasks] = useLocalStorage<Task[]>('tasks', []);
+  const { tasks: fetchedTasks, isLoading, error } = useTaskFetching();
+  
+  // State for edit mode
+  const [editingTask, setEditingTask] = useState<Task | null>(null);
+  
+  // Load tasks based on configuration
+  useEffect(() => {
+    if (initialTasks && initialTasks.length > 0) {
+      dispatch({ type: 'SET_TASKS', payload: initialTasks as Task[] });
+    } else if (finalConfig.persistToLocalStorage && storedTasks.length > 0) {
+      dispatch({ type: 'SET_TASKS', payload: storedTasks });
+    } else if (fetchedTasks.length > 0 && !initialTasks.length && !storedTasks.length) {
+      dispatch({ type: 'SET_TASKS', payload: fetchedTasks });
+    }
+  }, [initialTasks, storedTasks, fetchedTasks, finalConfig.persistToLocalStorage]);
+  
+  // Update local storage when tasks change
+  useEffect(() => {
+    if (finalConfig.persistToLocalStorage) {
+      setStoredTasks(state.tasks);
+    }
+    
+    // Call the callback if provided
+    if (onTasksChange) {
+      onTasksChange(state.tasks as T[]);
+    }
+  }, [state.tasks, finalConfig.persistToLocalStorage, setStoredTasks, onTasksChange]);
+  
+  // For setting focus to search input when mounted
+  useEffect(() => {
+    if (searchInputRef.current) {
+      searchInputRef.current.focus();
+    }
+  }, []);
+  
+  // Scroll to bottom when new task is added
+  useEffect(() => {
+    if (tasksContainerRef.current) {
+      tasksContainerRef.current.scrollTop = tasksContainerRef.current.scrollHeight;
+    }
+  }, [state.tasks.length]);
+  
+  // Event handlers
+  const handleAddTask = useCallback((newTask: Omit<Task, 'id' | 'createdAt'>) => {
+    // Check if we've reached the max tasks limit
+    if (finalConfig.maxTasks && state.tasks.length >= finalConfig.maxTasks) {
+      alert(`Maximum of ${finalConfig.maxTasks} tasks allowed.`);
+      return;
+    }
+    
+    const task: Task = {
+      ...newTask,
+      id: Date.now().toString(),
+      createdAt: new Date(),
+    };
+    
+    dispatch({ type: 'ADD_TASK', payload: task });
+  }, [state.tasks.length, finalConfig.maxTasks]);
+  
+  const handleUpdateTask = useCallback((id: string, updatedTask: Partial<Task>) => {
+    dispatch({ 
+      type: 'UPDATE_TASK', 
+      payload: { id, updatedTask } 
+    });
+    // Clear editing state
+    setEditingTask(null);
+  }, []);
+  
+  const handleDeleteTask = useCallback((id: string) => {
+    if (window.confirm('Are you sure you want to delete this task?')) {
+      dispatch({ type: 'DELETE_TASK', payload: id });
+    }
+  }, []);
+  
+  const handleStatusChange = useCallback((id: string, newStatus: Task['status']) => {
+    dispatch({ 
+      type: 'UPDATE_TASK', 
+      payload: { id, updatedTask: { status: newStatus } } 
+    });
+  }, []);
+  
+  const handleFilterChange = useCallback((e: ChangeEvent<HTMLSelectElement>) => {
+    dispatch({ 
+      type: 'SET_FILTER', 
+      payload: e.target.value as 'all' | 'pending' | 'in-progress' | 'completed' 
+    });
+  }, []);
+  
+  const handleSearchChange = useCallback((e: ChangeEvent<HTMLInputElement>) => {
+    dispatch({ type: 'SET_SEARCH_QUERY', payload: e.target.value });
+  }, []);
+  
+  const handleEditClick = useCallback((task: Task) => {
+    setEditingTask(task);
+  }, []);
+  
+  // Derived state (memoized)
+  const filteredTasks = useMemo(() => {
+    return state.tasks
+      .filter(task => {
+        // Apply status filter
+        if (state.filter !== 'all' && task.status !== state.filter) {
+          return false;
+        }
+        
+        // Apply search filter
+        if (state.searchQuery.trim() !== '') {
+          const query = state.searchQuery.toLowerCase();
+          return (
+            task.title.toLowerCase().includes(query) ||
+            task.description.toLowerCase().includes(query) ||
+            task.tags.some(tag => tag.toLowerCase().includes(query))
+          );
+        }
+        
+        return true;
+      })
+      .sort((a, b) => {
+        // Sort by priority and then by date
+        if (a.priority !== b.priority) {
+          const priorityOrder = { high: 0, medium: 1, low: 2 };
+          return priorityOrder[a.priority] - priorityOrder[b.priority];
+        }
+        
+        return b.createdAt.getTime() - a.createdAt.getTime();
+      });
+  }, [state.tasks, state.filter, state.searchQuery]);
+  
+  // Task context provider value
+  const taskContextValue = useMemo(() => ({
+    tasks: state.tasks,
+    addTask: handleAddTask,
+    updateTask: handleUpdateTask,
+    deleteTask: handleDeleteTask,
+    theme,
+    setTheme,
+  }), [state.tasks, handleAddTask, handleUpdateTask, handleDeleteTask, theme]);
+  
+  // Dynamic class based on theme
+  const themeClass = useMemo(() => {
+    if (theme === 'system') {
+      // Check system preference
+      return window.matchMedia('(prefers-color-scheme: dark)').matches
+        ? 'theme-dark'
+        : 'theme-light';
+    }
+    return `theme-${theme}`;
+  }, [theme]);
+  
+  // Handle edit task form submission
+  const handleEditTaskSubmit = (taskData: Omit<Task, 'id' | 'createdAt'>) => {
+    if (editingTask) {
+      handleUpdateTask(editingTask.id, {
+        ...taskData,
+        // Maintain the original createdAt date
+        createdAt: editingTask.createdAt,
+      });
+    }
+  };
+  
+  // Render
+  return (
+    <ErrorBoundary fallback={<div className="error-fallback">Something went wrong.</div>}>
+      <TaskContext.Provider value={taskContextValue}>
+        <div className={`task-manager ${themeClass} ${className}`}>
+          <header className="task-manager-header">
+            <h1>{title}</h1>
+            {renderCustomHeader && renderCustomHeader()}
+            
+            <div className="theme-switcher">
+              <label htmlFor="theme-select">Theme:</label>
+              <select
+                id="theme-select"
+                value={theme}
+                onChange={(e) => setTheme(e.target.value as 'light' | 'dark' | 'system')}
+              >
+                <option value="light">Light</option>
+                <option value="dark">Dark</option>
+                <option value="system">System</option>
+              </select>
+            </div>
+          </header>
+          
+          <div className="task-controls">
+            <div className="search-box">
+              <input
+                type="text"
+                placeholder="Search tasks..."
+                value={state.searchQuery}
+                onChange={handleSearchChange}
+                ref={searchInputRef}
+              />
+            </div>
+            
+            <div className="filter-box">
+              <label htmlFor="status-filter">Filter:</label>
+              <select
+                id="status-filter"
+                value={state.filter}
+                onChange={handleFilterChange}
+              >
+                <option value="all">All</option>
+                <option value="pending">Pending</option>
+                <option value="in-progress">In Progress</option>
+                <option value="completed">Completed</option>
+              </select>
+            </div>
+          </div>
+          
+          {/* Conditional rendering based on loading/error state */}
+          {state.isLoading || isLoading ? (
+            <div className="loading-indicator">Loading tasks...</div>
+          ) : state.error || error ? (
+            <div className="error-message">
+              Error: {(state.error || error)?.message}
+            </div>
+          ) : (
+            <>
+              <div className="tasks-container" ref={tasksContainerRef}>
+                {filteredTasks.length === 0 ? (
+                  <div className="no-tasks-message">
+                    No tasks found. {finalConfig.allowAddition && 'Add a new task below.'}
+                  </div>
+                ) : (
+                  filteredTasks.map(task => (
+                    <TaskItem
+                      key={task.id}
+                      task={task}
+                      onStatusChange={handleStatusChange}
+                      onEdit={handleEditClick}
+                      onDelete={finalConfig.allowDeletion ? handleDeleteTask : () => {}}
+                    />
+                  ))
+                )}
+              </div>
+              
+              {/* Task statistics */}
+              <div className="task-stats">
+                <div>Total: {state.tasks.length}</div>
+                <div>Pending: {state.tasks.filter(t => t.status === 'pending').length}</div>
+                <div>In Progress: {state.tasks.filter(t => t.status === 'in-progress').length}</div>
+                <div>Completed: {state.tasks.filter(t => t.status === 'completed').length}</div>
+              </div>
+            </>
+          )}
+          
+          {/* Custom children can be provided */}
+          {children}
+          
+          {/* Edit mode */}
+          {editingTask && (
+            <div className="edit-task-overlay">
+              <div className="edit-task-modal">
+                <h2>Edit Task</h2>
+                <TaskForm
+                  onTaskSubmit={handleEditTaskSubmit}
+                  initialValues={{
+                    title: editingTask.title,
+                    description: editingTask.description,
+                    priority: editingTask.priority,
+                    tags: editingTask.tags,
+                  }}
+                  buttonText="Update Task"
+                />
+                <button className="cancel-button" onClick={() => setEditingTask(null)}>
+                  Cancel
+                </button>
+              </div>
+            </div>
+          )}
+          
+          {/* Add task form (if enabled) */}
+          {finalConfig.allowAddition && !editingTask && (
+            <div className="add-task-section">
+              <h2>Add New Task</h2>
+              <TaskForm onTaskSubmit={handleAddTask} />
+            </div>
+          )}
+        </div>
+      </TaskContext.Provider>
+    </ErrorBoundary>
+  );
+}
+
+// Usage example:
+/*
+import { TaskManager, Task } from './TaskManager';
+
+const App: React.FC = () => {
+  const handleTasksChange = (tasks: Task[]) => {
+    console.log('Tasks changed:', tasks);
+  };
+  
+  return (
+    <div className="app">
+      <TaskManager
+        title="My Project Tasks"
+        onTasksChange={handleTasksChange}
+        config={{
+          allowAddition: true,
+          allowDeletion: true,
+          allowEdit: true,
+          maxTasks: 10,
+          persistToLocalStorage: true,
+          theme: 'light',
+        }}
+        renderCustomHeader={() => (
+          <div className="custom-header">
+            <button>Export as CSV</button>
+          </div>
+        )}
+      >
+        <div className="custom-footer">
+          <p>Custom content can be added as children</p>
+        </div>
+      </TaskManager>
+    </div>
+  );
+};
+
+export default App;
+*/
