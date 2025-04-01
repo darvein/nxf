@@ -43,7 +43,6 @@ ffmpeg \
 	-maxrate:v 20M \
 	-bufsize:v 20M \
 	-pix_fmt yuv420p commentary-$(date +%Y%m%d-%H%M%S).mp4
-
 # Without audio with davinci compability
 ffmpeg \
     -f x11grab \
@@ -57,7 +56,28 @@ ffmpeg \
     -pix_fmt yuv420p \
     commentary-$(date +%Y%m%d-%H%M%S).mp4
 -----
-
 # Speed up to 4x
 ffmpeg -i input.mp4 -filter:v "setpts=PTS/5" output.mp4
+-----
+# Convert from MOV to MP4 without lossing quality
+ffmpeg -i input.mov -c:v libx264 -preset slow -crf 22 -c:a aac -b:a 192k output.mp4
+-----
+# Record mics and desk audio plus video at 150%
+ffmpeg \
+  -f x11grab \
+  -framerate 30 \
+  -video_size 2560x1440 \
+  -i :0.0+0+0 \
+  -f pulse -i alsa_input.usb-Trust_USB_microphone_Trust_USB_microphone_20191101-00.mono-fallback \
+  -f pulse -i alsa_input.usb-Samsung_Samsung_USB_C_Earphones_20160406.1-00.analog-stereo \
+  -f pulse -i alsa_output.usb-Samsung_Samsung_USB_C_Earphones_20160406.1-00.analog-stereo.monitor \
+  -filter_complex "[1:a][2:a][3:a]amerge=inputs=3[a]" \
+  -map 0:v \
+  -map "[a]" \
+  -c:v libx264 \
+  -qp 0 \
+  -preset ultrafast \
+  -c:a aac \
+  -b:a 192k \
+  -ac 2 output.mkv
 -----

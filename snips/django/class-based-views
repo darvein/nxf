@@ -1,0 +1,936 @@
+# Django class-based views
+
+from django.shortcuts import render, get_object_or_404, redirect
+from django.http import (
+    HttpResponse, JsonResponse, FileResponse, 
+    HttpResponseRedirect, HttpResponsePermanentRedirect,
+    HttpResponseBadRequest, HttpResponseForbidden, 
+    HttpResponseNotFound, HttpResponseServerError
+)
+from django.template.response import TemplateResponse
+from django.views import View
+from django.views.generic import (
+    TemplateView, ListView, DetailView,
+    CreateView, UpdateView, DeleteView,
+    FormView, RedirectView
+)
+from django.views.generic.dates import (
+    ArchiveIndexView, YearArchiveView, MonthArchiveView,
+    WeekArchiveView, DayArchiveView, TodayArchiveView,
+    DateDetailView
+)
+from django.urls import reverse, reverse_lazy
+from django.contrib import messages
+from django.contrib.auth.decorators import (
+    login_required, permission_required, 
+    user_passes_test
+)
+from django.contrib.auth.mixins import (
+    LoginRequiredMixin, PermissionRequiredMixin,
+    UserPassesTestMixin
+)
+from django.views.decorators.http import (
+    require_http_methods, require_GET, 
+    require_POST, require_safe
+)
+from django.views.decorators.cache import (
+    cache_page, never_cache
+)
+from django.views.decorators.csrf import (
+    csrf_protect, csrf_exempt, 
+    ensure_csrf_cookie, requires_csrf_token
+)
+from django.utils.decorators import method_decorator
+from django.core.paginator import Paginator
+from django.db.models import Q, Count, Sum, Avg
+from django.utils.translation import gettext_lazy as _
+from django.core.exceptions import PermissionDenied
+from django.http import Http404
+from django.utils import timezone
+import json
+import logging
+import csv
+
+from .models import Book, Author, Publisher, Genre
+from .forms import BookForm, AuthorForm, ContactForm, SearchForm
+
+
+# ======================================================================
+# CLASS-BASED VIEWS (CBVs)
+# ======================================================================
+
+# ----------------------
+# Base Generic View
+# ----------------------
+
+class BasicView(View):
+    """
+    Basic class-based view with method-based handling
+    """
+    
+    def get(self, request, *args, **kwargs):
+        """Handle GET requests"""
+        return HttpResponse("This is a GET response from a class-based view")
+    
+    def post(self, request, *args, **kwargs):
+        """Handle POST requests"""
+        return HttpResponse("This is a POST response from a class-based view")
+    
+    def put(self, request, *args, **kwargs):
+        """Handle PUT requests"""
+        return HttpResponse("This is a PUT response from a class-based view")
+    
+    def delete(self, request, *args, **kwargs):
+        """Handle DELETE requests"""
+        return HttpResponse("This is a DELETE response from a class-based view")
+
+
+class TemplateBasedView(View):
+    """
+    Class-based view using templates
+    """
+    template_name = 'books/template_based.html'
+    
+    def get(self, request, *args, **kwargs):
+        return render(request, self.template_name, {'title': 'Template Based View'})
+
+
+# ----------------------
+# TemplateView
+# ----------------------
+
+class SimpleTemplateView(TemplateView):
+    """
+    Simple TemplateView with static context data
+    """
+    template_name = 'books/simple_template.html'
+    extra_context = {'title': 'Simple Template View'}
+
+
+class DynamicTemplateView(TemplateView):
+    """
+    TemplateView with dynamic context data
+    """
+    template_name = 'books/dynamic_template.html'
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        
+        # Add extra context data
+        context['title'] = 'Dynamic Template View'
+        context['current_time'] = timezone.now()
+        context['books_count'] = Book.objects.count()
+        
+        # Access URL parameters
+        context['url_parameter'] = kwargs.get('parameter', None)
+        
+        # Access query parameters
+        context['query_param'] = self.request.GET.get('q', '')
+        
+        return context
+
+
+# ----------------------
+# ListView
+# ----------------------
+
+class BookListView(ListView):
+    """
+    Basic ListView for displaying all books
+    """
+    model = Book  # Model to use for the list
+    template_name = 'books/book_list.html'  # Template to render
+    context_object_name = 'books'  # Name for the list in the context
+    
+    def get_context_data(self, **kwargs):
+        """Add additional context data"""
+        context = super().get_context_data(**kwargs)
+        context['title'] = 'All Books'
+        context['count'] = self.get_queryset().count()
+        return context
+
+
+class FilteredBookListView(ListView):
+    """
+    ListView with custom filtering
+    """
+    model = Book
+    template_name = 'books/book_list.html'
+    context_object_name = 'books'
+    paginate_by = 10  # Enable pagination with 10 items per page
+    
+    def get_queryset(self):
+        """Override to customize the queryset"""
+        queryset = super().get_queryset()
+        
+        # Filter by query parameters
+        genre = self.request.GET.get('genre')
+        if genre:
+            queryset = queryset.filter(genres__name=genre)
+        
+        search_query = self.request.GET.get('q')
+        if search_query:
+            queryset = queryset.filter(
+                Q(title__icontains=search_query) |
+                Q(description__icontains=search_query)
+            )
+        
+        # Sort the queryset
+        sort_by = self.request.GET.get('sort', '-published_date')
+        queryset = queryset.order_by(sort_by)
+        
+        return queryset
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        
+        # Add filter parameters to context for the template
+        context['current_genre'] = self.request.GET.get('genre', '')
+        context['current_query'] = self.request.GET.get('q', '')
+        context['current_sort'] = self.request.GET.get('sort', '-published_date')
+        
+        # Add available filter options
+        context['genres'] = Genre.objects.all()
+        context['sort_options'] = [
+            {'value': 'title', 'label': 'Title (A-Z)'},
+            {'value': '-title', 'label': 'Title (Z-A)'},
+            {'value': '-published_date', 'label': 'Newest First'},
+            {'value': 'published_date', 'label': 'Oldest First'},
+            {'value': '-price', 'label': 'Price (High to Low)'},
+            {'value': 'price', 'label': 'Price (Low to High)'},
+        ]
+        
+        return context
+
+
+# ----------------------
+# DetailView
+# ----------------------
+
+class BookDetailView(DetailView):
+    """
+    Basic DetailView for a book
+    """
+    model = Book
+    template_name = 'books/book_detail.html'
+    context_object_name = 'book'
+    
+    # Use PK lookup by default
+    # For slug lookups, use:
+    # slug_field = 'slug'
+    # slug_url_kwarg = 'book_slug'
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        
+        # Add related data
+        book = self.get_object()
+        context['related_books'] = book.related_books.all()
+        context['genres'] = book.genres.all()
+        
+        return context
+
+
+class MultipleObjectDetailView(DetailView):
+    """
+    DetailView with custom object lookup
+    """
+    model = Book
+    template_name = 'books/book_detail.html'
+    context_object_name = 'book'
+    
+    def get_object(self, queryset=None):
+        """Custom method to get the object"""
+        # Get the base queryset
+        if queryset is None:
+            queryset = self.get_queryset()
+        
+        # Get lookup parameters from URL
+        isbn = self.kwargs.get('isbn')
+        
+        if isbn:
+            # Try to get the book by ISBN
+            obj = get_object_or_404(queryset, isbn=isbn)
+        else:
+            # Fall back to default behavior
+            obj = super().get_object(queryset)
+        
+        return obj
+
+
+# ----------------------
+# CreateView
+# ----------------------
+
+class BookCreateView(CreateView):
+    """
+    Basic CreateView for adding a new book
+    """
+    model = Book
+    form_class = BookForm
+    template_name = 'books/book_form.html'
+    # Alternative to form_class: specify fields directly
+    # fields = ['title', 'authors', 'description', 'price', 'published_date']
+    
+    def get_initial(self):
+        """Provide initial data for the form"""
+        initial = super().get_initial()
+        initial['language'] = 'en'
+        initial['status'] = 'draft'
+        return initial
+    
+    def form_valid(self, form):
+        """Called when form is valid"""
+        # Customize the object before saving
+        form.instance.created_by = self.request.user
+        
+        # Call parent method to save the object
+        response = super().form_valid(form)
+        
+        # Add a success message
+        messages.success(
+            self.request, 
+            f"Book '{form.instance.title}' created successfully!"
+        )
+        
+        return response
+    
+    def get_success_url(self):
+        """URL to redirect to after successful form submission"""
+        return reverse('book_detail', kwargs={'pk': self.object.pk})
+
+
+class AuthorCreatePopupView(CreateView):
+    """
+    CreateView in a popup window for related objects
+    """
+    model = Author
+    fields = ['name']
+    template_name = 'books/author_popup_form.html'
+    
+    def form_valid(self, form):
+        """Handle popup form success"""
+        author = form.save()
+        
+        # Return a response for the popup window
+        return HttpResponse(
+            f'<script>opener.closePopup({author.pk}, "{author.name}");</script>'
+        )
+
+
+# ----------------------
+# UpdateView
+# ----------------------
+
+class BookUpdateView(UpdateView):
+    """
+    Basic UpdateView for editing a book
+    """
+    model = Book
+    form_class = BookForm
+    template_name = 'books/book_form.html'
+    # fields = ['title', 'authors', 'description', 'price', 'published_date']
+    
+    def get_context_data(self, **kwargs):
+        """Add data to context"""
+        context = super().get_context_data(**kwargs)
+        context['is_update'] = True
+        context['title'] = f"Edit: {self.object.title}"
+        return context
+    
+    def form_valid(self, form):
+        """Called when form is valid"""
+        # Log the change
+        messages.success(
+            self.request, 
+            f"Book '{form.instance.title}' updated successfully!"
+        )
+        
+        return super().form_valid(form)
+    
+    def get_success_url(self):
+        """URL to redirect to after successful form submission"""
+        return reverse('book_detail', kwargs={'pk': self.object.pk})
+
+
+class BookPartialUpdateView(UpdateView):
+    """
+    UpdateView for partial updates (specific fields only)
+    """
+    model = Book
+    fields = ['status', 'price']  # Only allow updating these fields
+    template_name = 'books/book_partial_form.html'
+    
+    def get_success_url(self):
+        return reverse('book_detail', kwargs={'pk': self.object.pk})
+
+
+# ----------------------
+# DeleteView
+# ----------------------
+
+class BookDeleteView(DeleteView):
+    """
+    Basic DeleteView for removing a book
+    """
+    model = Book
+    template_name = 'books/book_confirm_delete.html'
+    success_url = reverse_lazy('book_list')  # Use reverse_lazy for class attributes
+    
+    def delete(self, request, *args, **kwargs):
+        """Override delete method to add custom behavior"""
+        self.object = self.get_object()
+        success_url = self.get_success_url()
+        
+        # Custom logic before deletion
+        book_title = self.object.title
+        
+        # Perform the deletion
+        self.object.delete()
+        
+        # Add a success message
+        messages.success(
+            request, 
+            f"Book '{book_title}' deleted successfully!"
+        )
+        
+        return HttpResponseRedirect(success_url)
+
+
+class SoftDeleteView(DeleteView):
+    """
+    DeleteView that doesn't actually delete but marks as inactive
+    """
+    model = Book
+    template_name = 'books/book_confirm_delete.html'
+    
+    def delete(self, request, *args, **kwargs):
+        """Override delete to mark as archived instead of deleting"""
+        self.object = self.get_object()
+        success_url = self.get_success_url()
+        
+        # Instead of deleting, mark as archived
+        self.object.status = 'archived'
+        self.object.save()
+        
+        messages.success(
+            request, 
+            f"Book '{self.object.title}' has been archived."
+        )
+        
+        return HttpResponseRedirect(success_url)
+    
+    def get_success_url(self):
+        return reverse('book_list')
+
+
+# ----------------------
+# FormView
+# ----------------------
+
+class ContactFormView(FormView):
+    """
+    Basic FormView for a contact form (not tied to a model)
+    """
+    template_name = 'books/contact_form.html'
+    form_class = ContactForm
+    success_url = reverse_lazy('contact_success')
+    
+    def form_valid(self, form):
+        """Process the valid form data"""
+        # Access form data
+        name = form.cleaned_data['name']
+        email = form.cleaned_data['email']
+        message = form.cleaned_data['message']
+        
+        # Process the data (e.g., send email)
+        # send_contact_email(name, email, message)
+        
+        # Add success message
+        messages.success(
+            self.request, 
+            "Thank you for your message! We'll get back to you soon."
+        )
+        
+        return super().form_valid(form)
+
+
+class SearchFormView(FormView):
+    """
+    FormView that processes form and displays results on the same page
+    """
+    template_name = 'books/search_form.html'
+    form_class = SearchForm
+    
+    def get_initial(self):
+        """Populate initial form data from query parameters"""
+        initial = super().get_initial()
+        initial['query'] = self.request.GET.get('query', '')
+        initial['genre'] = self.request.GET.get('genre', '')
+        return initial
+    
+    def form_valid(self, form):
+        """Process the form and display results"""
+        # Instead of redirecting, render the same page with results
+        return self.render_to_response(self.get_context_data(form=form))
+    
+    def get_context_data(self, **kwargs):
+        """Add search results to the context"""
+        context = super().get_context_data(**kwargs)
+        
+        # If form submitted and valid, add results
+        if 'form' in kwargs and kwargs['form'].is_valid():
+            form = kwargs['form']
+            query = form.cleaned_data['query']
+            genre = form.cleaned_data['genre']
+            
+            # Perform search
+            books = Book.objects.all()
+            if query:
+                books = books.filter(
+                    Q(title__icontains=query) | 
+                    Q(description__icontains=query)
+                )
+            if genre:
+                books = books.filter(genres__name=genre)
+            
+            context['books'] = books
+            context['search_performed'] = True
+        
+        return context
+
+
+# ----------------------
+# RedirectView
+# ----------------------
+
+class BookRedirectView(RedirectView):
+    """
+    RedirectView that redirects to a specified URL
+    """
+    # URL to redirect to, with optional placeholders for URL parameters
+    url = '/books/%(book_id)s/'  
+    
+    # Alternative: use a named pattern
+    # pattern_name = 'book_detail'
+    
+    # Whether to use permanent redirect (301 vs 302)
+    permanent = True
+    
+    # Whether to preserve query string parameters in the redirect
+    query_string = True
+
+
+class OldBookRedirectView(RedirectView):
+    """
+    RedirectView with custom redirect logic
+    """
+    permanent = True
+    
+    def get_redirect_url(self, *args, **kwargs):
+        """Custom method to determine redirect URL"""
+        old_id = kwargs.get('old_id')
+        
+        # Map old IDs to new IDs
+        id_mapping = {
+            '123': '456',
+            '124': '457',
+            # etc.
+        }
+        
+        if old_id in id_mapping:
+            new_id = id_mapping[old_id]
+            return reverse('book_detail', kwargs={'pk': new_id})
+        else:
+            # Default redirect if mapping not found
+            return reverse('book_list')
+
+
+# ----------------------
+# Date-based Views
+# ----------------------
+
+class BookArchiveIndexView(ArchiveIndexView):
+    """
+    View for displaying the latest books
+    """
+    model = Book
+    date_field = 'published_date'  # Field to use for date-based organization
+    template_name = 'books/book_archive.html'
+    context_object_name = 'latest_books'
+    allow_empty = True  # Allow empty lists (no books)
+    paginate_by = 10  # Enable pagination
+    
+    # Other options:
+    # allow_future = False  # Whether to include dates in the future
+    # date_list_period = 'month'  # Grouping period for date navigation ('year', 'month', or 'day')
+    # make_object_list = True  # Whether to retrieve the full list of objects
+
+
+class BookYearArchiveView(YearArchiveView):
+    """
+    View for displaying books from a specific year
+    """
+    model = Book
+    date_field = 'published_date'
+    template_name = 'books/book_year_archive.html'
+    context_object_name = 'books'
+    make_object_list = True
+    allow_empty = True
+    year_format = '%Y'  # Format for matching the year from URL
+
+
+class BookMonthArchiveView(MonthArchiveView):
+    """
+    View for displaying books from a specific year/month
+    """
+    model = Book
+    date_field = 'published_date'
+    template_name = 'books/book_month_archive.html'
+    context_object_name = 'books'
+    year_format = '%Y'
+    month_format = '%m'  # Format for matching the month from URL
+
+
+class BookDayArchiveView(DayArchiveView):
+    """
+    View for displaying books from a specific year/month/day
+    """
+    model = Book
+    date_field = 'published_date'
+    template_name = 'books/book_day_archive.html'
+    context_object_name = 'books'
+    year_format = '%Y'
+    month_format = '%m'
+    day_format = '%d'  # Format for matching the day from URL
+
+
+class TodaysBooksView(TodayArchiveView):
+    """
+    View for displaying books published today
+    """
+    model = Book
+    date_field = 'published_date'
+    template_name = 'books/todays_books.html'
+    context_object_name = 'books'
+
+
+class BookDateDetailView(DateDetailView):
+    """
+    View for displaying a specific book by date and primary key
+    """
+    model = Book
+    date_field = 'published_date'
+    template_name = 'books/book_detail.html'
+    context_object_name = 'book'
+    year_format = '%Y'
+    month_format = '%m'
+    day_format = '%d'
+
+
+# ----------------------
+# Mixins and Class Composition
+# ----------------------
+
+class LoginRequiredMixinDemo(LoginRequiredMixin, View):
+    """
+    Simple example of a view requiring login
+    """
+    login_url = '/accounts/login/'  # Where to redirect unauthenticated users
+    redirect_field_name = 'next'  # GET parameter for the redirect URL
+    
+    def get(self, request):
+        return HttpResponse("You're logged in and can see this!")
+
+
+class PermissionRequiredMixinDemo(PermissionRequiredMixin, View):
+    """
+    Simple example of a view requiring specific permissions
+    """
+    permission_required = 'books.can_publish_book'  # Permission required
+    # Or multiple permissions:
+    # permission_required = ('books.can_publish_book', 'books.can_edit_book')
+    
+    # Whether to raise PermissionDenied or redirect to login
+    raise_exception = True
+    
+    def get(self, request):
+        return HttpResponse("You have permission to publish books!")
+
+
+class UserPassesTestMixinDemo(UserPassesTestMixin, View):
+    """
+    Simple example of a view requiring a test to pass
+    """
+    def test_func(self):
+        """Test to determine if the user can access the view"""
+        user = self.request.user
+        return user.is_staff or user.profile.is_premium_member
+    
+    def get(self, request):
+        return HttpResponse("You passed the test!")
+
+
+class StaffOrPublisherAccessMixin(UserPassesTestMixin):
+    """
+    Reusable mixin for views requiring staff or publisher access
+    """
+    def test_func(self):
+        user = self.request.user
+        return user.is_staff or user.groups.filter(name='Publishers').exists()
+
+
+class LoggingMixin:
+    """
+    Mixin to add logging to a view
+    """
+    def dispatch(self, request, *args, **kwargs):
+        """Log the start and end of the request"""
+        logger = logging.getLogger(__name__)
+        
+        # Log the start of the request
+        logger.info(f"Request to {self.__class__.__name__} started")
+        
+        # Process the request
+        response = super().dispatch(request, *args, **kwargs)
+        
+        # Log the end of the request
+        logger.info(f"Request to {self.__class__.__name__} completed")
+        
+        return response
+
+
+class AjaxResponseMixin:
+    """
+    Mixin for views that respond differently to AJAX requests
+    """
+    def render_to_response(self, context, **response_kwargs):
+        """Override to return JSON for AJAX requests"""
+        if self.request.headers.get('x-requested-with') == 'XMLHttpRequest':
+            return self.render_to_json_response(context, **response_kwargs)
+        return super().render_to_response(context, **response_kwargs)
+    
+    def render_to_json_response(self, context, **response_kwargs):
+        """Return a JSON response with context data"""
+        # Convert context to JSON serializable format
+        data = self.get_data_for_json(context)
+        return JsonResponse(data, **response_kwargs)
+    
+    def get_data_for_json(self, context):
+        """Convert context data to JSON serializable format"""
+        # Default implementation: just return the context
+        # Subclasses should override this to format data properly
+        return context
+
+
+class FormMessageMixin:
+    """
+    Mixin to add success/error messages to form views
+    """
+    success_message = "Operation completed successfully."
+    error_message = "There was an error. Please check the form."
+    
+    def form_valid(self, form):
+        """Add success message"""
+        messages.success(self.request, self.success_message)
+        return super().form_valid(form)
+    
+    def form_invalid(self, form):
+        """Add error message"""
+        messages.error(self.request, self.error_message)
+        return super().form_invalid(form)
+
+
+# Example of complex view with multiple mixins
+class PublisherDashboardView(
+    LoginRequiredMixin,
+    PermissionRequiredMixin, 
+    LoggingMixin,
+    TemplateView
+):
+    """
+    Complex view with multiple mixins for a publisher dashboard
+    """
+    template_name = 'books/publisher_dashboard.html'
+    permission_required = 'books.can_publish_book'
+    login_url = '/accounts/login/'
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        
+        publisher = self.request.user.publisher
+        context['published_books'] = publisher.published_books.filter(status='published')
+        context['draft_books'] = publisher.published_books.filter(status='draft')
+        context['sales_data'] = self.get_sales_data(publisher)
+        
+        return context
+    
+    def get_sales_data(self, publisher):
+        """Get sales data for the publisher"""
+        # This would be a complex database query in a real app
+        return {
+            'total_revenue': 1000000,
+            'bestseller': 'Django for Professionals',
+            'monthly_trend': [10000, 15000, 12000, 18000, 20000, 22000],
+        }
+
+
+class BookAPIView(AjaxResponseMixin, DetailView):
+    """
+    View that returns HTML or JSON based on request type
+    """
+    model = Book
+    template_name = 'books/book_detail.html'
+    context_object_name = 'book'
+    
+    def get_data_for_json(self, context):
+        """Format book data for JSON response"""
+        book = context['book']
+        return {
+            'id': book.id,
+            'title': book.title,
+            'description': book.description,
+            'price': float(book.price),
+            'published_date': book.published_date.isoformat() if book.published_date else None,
+            'authors': [
+                {'id': author.id, 'name': author.name} 
+                for author in book.authors.all()
+            ],
+            'genres': [
+                {'id': genre.id, 'name': genre.name} 
+                for genre in book.genres.all()
+            ],
+        }
+
+
+# ----------------------
+# Custom Class-Based View
+# ----------------------
+
+class CSVExportView(View):
+    """
+    Custom view for exporting data to CSV
+    """
+    model = None  # Model to export
+    fields = None  # Fields to include in the CSV
+    filename = 'export.csv'  # Default filename
+    
+    def get_queryset(self):
+        """Get the data to export"""
+        if self.model is None:
+            raise ImproperlyConfigured("CSVExportView requires a model attribute")
+        return self.model.objects.all()
+    
+    def get_fields(self):
+        """Get the fields to include in the CSV"""
+        if self.fields is None:
+            # Default to all fields
+            return [f.name for f in self.model._meta.fields]
+        return self.fields
+    
+    def get_filename(self):
+        """Get the CSV filename"""
+        return self.filename
+    
+    def get(self, request, *args, **kwargs):
+        """Handle GET request and return CSV file"""
+        queryset = self.get_queryset()
+        fields = self.get_fields()
+        filename = self.get_filename()
+        
+        # Create response with CSV content type
+        response = HttpResponse(content_type='text/csv')
+        response['Content-Disposition'] = f'attachment; filename="{filename}"'
+        
+        # Create CSV writer
+        writer = csv.writer(response)
+        
+        # Write header row
+        writer.writerow(fields)
+        
+        # Write data rows
+        for obj in queryset:
+            row = []
+            for field in fields:
+                # Get value for each field
+                value = getattr(obj, field)
+                row.append(value)
+            writer.writerow(row)
+        
+        return response
+
+
+class BookCSVExportView(CSVExportView):
+    """
+    CSV export view for books
+    """
+    model = Book
+    fields = ['id', 'title', 'price', 'published_date', 'status']
+    filename = 'books_export.csv'
+    
+    def get_queryset(self):
+        """Override to filter the queryset"""
+        queryset = super().get_queryset()
+        
+        # Filter by query parameters
+        status = self.request.GET.get('status')
+        if status:
+            queryset = queryset.filter(status=status)
+            
+        return queryset
+
+
+# ----------------------
+# URL Configuration and View Decorators
+# ----------------------
+
+"""
+Examples of URL patterns for these views (belongs in urls.py, not views.py)
+
+# Class-Based Views
+urlpatterns = [
+    path('cbv/books/', BookListView.as_view(), name='cbv_book_list'),
+    path('cbv/books/<int:pk>/', BookDetailView.as_view(), name='cbv_book_detail'),
+    path('cbv/books/create/', BookCreateView.as_view(), name='cbv_book_create'),
+    path('cbv/books/<int:pk>/update/', BookUpdateView.as_view(), name='cbv_book_update'),
+    path('cbv/books/<int:pk>/delete/', BookDeleteView.as_view(), name='cbv_book_delete'),
+    
+    # Date-based views
+    path('cbv/archive/', BookArchiveIndexView.as_view(), name='book_archive_index'),
+    path('cbv/archive/<int:year>/', BookYearArchiveView.as_view(), name='book_year_archive'),
+    path('cbv/archive/<int:year>/<int:month>/', BookMonthArchiveView.as_view(), name='book_month_archive'),
+    path('cbv/archive/<int:year>/<int:month>/<int:day>/', BookDayArchiveView.as_view(), name='book_day_archive'),
+    path('cbv/archive/today/', TodaysBooksView.as_view(), name='todays_books'),
+]
+"""
+
+"""
+# Applying decorators to Class-Based Views
+
+# Method 1: Apply to dispatch method using method_decorator
+class ProtectedView(View):
+    @method_decorator(login_required)
+    def dispatch(self, *args, **kwargs):
+        return super().dispatch(*args, **kwargs)
+
+# Method 2: Apply to the class using decorator_from_middleware
+from django.utils.decorators import decorator_from_middleware
+from django.middleware.gzip import GZipMiddleware
+
+@decorator_from_middleware(GZipMiddleware)
+class CompressedView(View):
+    # View code here
+    pass
+
+# Method 3: Apply multiple decorators to a view when defining URLs
+from django.contrib.auth.decorators import login_required
+from django.views.decorators.cache import cache_page
+
+urlpatterns = [
+    path(
+        'protected-cached/', 
+        login_required(cache_page(60*15)(TemplateView.as_view(template_name='protected.html'))),
+        name='protected_cached'
+    ),
+]
+"""

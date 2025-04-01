@@ -1,0 +1,456 @@
+# Django Model Complete Example
+from django.db import models
+from django.utils.translation import gettext_lazy as _
+from django.core.validators import MinValueValidator, MaxValueValidator, RegexValidator
+from django.utils import timezone
+from django.urls import reverse
+from django.contrib.auth.models import User
+import uuid
+
+
+class BookManager(models.Manager):
+    """Custom manager for the Book model"""
+    
+    def get_queryset(self):
+        """Override the default queryset"""
+        return super().get_queryset()
+    
+    def published(self):
+        """Return only published books"""
+        return self.filter(status='published')
+    
+    def by_author(self, author_name):
+        """Filter books by author name"""
+        return self.filter(authors__name__icontains=author_name)
+    
+    def popular_books(self):
+        """Return books with high ratings"""
+        return self.filter(rating__gte=4.0)
+
+
+class Author(models.Model):
+    """Example related model"""
+    name = models.CharField(max_length=200)
+    
+    def __str__(self):
+        return self.name
+
+
+class Publisher(models.Model):
+    """Example related model"""
+    name = models.CharField(max_length=200)
+    
+    def __str__(self):
+        return self.name
+
+
+class Genre(models.Model):
+    """Example related model"""
+    name = models.CharField(max_length=100)
+    
+    def __str__(self):
+        return self.name
+
+
+class Book(models.Model):
+    """
+    A comprehensive example of a Book model with various fields,
+    options, relationships, methods, and Meta options.
+    """
+    
+    # Choices - defined as tuples of tuples or lists of lists
+    STATUS_CHOICES = [
+        ('draft', _('Draft')),
+        ('review', _('In Review')),
+        ('published', _('Published')),
+        ('archived', _('Archived')),
+    ]
+    
+    LANGUAGE_CHOICES = (
+        ('en', _('English')),
+        ('es', _('Spanish')),
+        ('fr', _('French')),
+        ('de', _('German')),
+        ('zh', _('Chinese')),
+    )
+    
+    # ID Fields
+    id = models.AutoField(primary_key=True)  # Default PK field
+    uuid = models.UUIDField(default=uuid.uuid4, editable=False, unique=True, help_text=_("Unique identifier for this book"))
+    isbn = models.CharField(
+        max_length=17, 
+        unique=True,
+        verbose_name=_("ISBN"),
+        help_text=_("International Standard Book Number"),
+        validators=[
+            RegexValidator(
+                regex=r'^\d{3}-\d{10}$',
+                message=_("ISBN should be in the format: XXX-XXXXXXXXXX")
+            )
+        ]
+    )
+    
+    # Character fields
+    title = models.CharField(
+        max_length=255, 
+        verbose_name=_("Book Title"),
+        help_text=_("The full title of the book"),
+        db_index=True,  # Add database index for faster searches
+    )
+    subtitle = models.CharField(
+        max_length=255, 
+        blank=True,  # Field is optional
+        null=True,   # Allows NULL values in the database
+        help_text=_("Book's subtitle if any")
+    )
+    slug = models.SlugField(
+        max_length=255, 
+        unique=True,
+        help_text=_("URL-friendly version of the title")
+    )
+    
+    # Text fields
+    description = models.TextField(
+        blank=True, 
+        help_text=_("Brief description of the book")
+    )
+    content = models.TextField(
+        blank=True,
+        help_text=_("Full content or excerpts from the book")
+    )
+    
+    # HTML field
+    description_html = models.TextField(
+        blank=True,
+        help_text=_("HTML formatted description")
+    )
+    
+    # Numeric fields
+    page_count = models.PositiveIntegerField(
+        default=0,
+        validators=[
+            MinValueValidator(1, message=_("A book must have at least 1 page")),
+            MaxValueValidator(10000, message=_("Page count too high"))
+        ],
+        help_text=_("Number of pages in the book")
+    )
+    price = models.DecimalField(
+        max_digits=10,  # Total number of digits
+        decimal_places=2,  # Number of decimal places
+        help_text=_("Book price in USD"),
+        validators=[MinValueValidator(0.01)]
+    )
+    weight = models.FloatField(
+        null=True,
+        blank=True,
+        help_text=_("Weight in kilograms"),
+    )
+    rating = models.FloatField(
+        null=True,
+        blank=True,
+        validators=[
+            MinValueValidator(0.0, message=_("Rating cannot be negative")),
+            MaxValueValidator(5.0, message=_("Rating cannot exceed 5.0"))
+        ],
+        help_text=_("Average rating from 0 to 5")
+    )
+    copies_sold = models.PositiveBigIntegerField(
+        default=0,
+        help_text=_("Number of copies sold worldwide")
+    )
+    edition = models.SmallIntegerField(
+        default=1,
+        help_text=_("Edition number")
+    )
+    
+    # Boolean field
+    is_bestseller = models.BooleanField(
+        default=False,
+        help_text=_("Whether this book is considered a bestseller")
+    )
+    featured = models.BooleanField(
+        default=False,
+        help_text=_("Feature this book in the homepage")
+    )
+    
+    # Date fields
+    published_date = models.DateField(
+        blank=True,
+        null=True,
+        help_text=_("Date when the book was published")
+    )
+    created_at = models.DateTimeField(
+        auto_now_add=True,  # Set only when object is created
+        help_text=_("Timestamp when the record was created")
+    )
+    updated_at = models.DateTimeField(
+        auto_now=True,  # Updated every time the object is saved
+        help_text=_("Timestamp when the record was last updated")
+    )
+    last_accessed = models.DateTimeField(
+        default=timezone.now,
+        help_text=_("When the book was last accessed")
+    )
+    
+    # Choice field
+    status = models.CharField(
+        max_length=20,
+        choices=STATUS_CHOICES,
+        default='draft',
+        help_text=_("Publication status of the book")
+    )
+    language = models.CharField(
+        max_length=2,
+        choices=LANGUAGE_CHOICES,
+        default='en',
+        help_text=_("Primary language of the book")
+    )
+    
+    # File fields
+    cover_image = models.ImageField(
+        upload_to='books/covers/%Y/%m/%d/',
+        blank=True,
+        null=True,
+        help_text=_("Book cover image")
+    )
+    sample_pdf = models.FileField(
+        upload_to='books/samples/',
+        blank=True,
+        null=True,
+        help_text=_("Sample PDF of the book")
+    )
+    
+    # Relationship fields - ForeignKey (many-to-one)
+    publisher = models.ForeignKey(
+        Publisher,
+        on_delete=models.CASCADE,  # When publisher is deleted, delete this book
+        related_name='published_books',  # Access books from publisher: publisher.published_books.all()
+        help_text=_("The publisher of this book")
+    )
+    
+    main_author = models.ForeignKey(
+        Author,
+        on_delete=models.PROTECT,  # Cannot delete author if they have books
+        related_name='primary_books',
+        null=True,
+        blank=True,
+        help_text=_("The main author of the book")
+    )
+    
+    # Relationship fields - ManyToManyField
+    authors = models.ManyToManyField(
+        Author,
+        related_name='books',  # Access books from author: author.books.all()
+        blank=True,  # Can have no authors (though illogical)
+        help_text=_("All authors of this book")
+    )
+    
+    genres = models.ManyToManyField(
+        Genre,
+        related_name='books',
+        blank=True,
+        help_text=_("Genres this book belongs to"),
+        through='BookGenre',  # Custom through model for additional fields
+    )
+    
+    # Relationship fields - OneToOneField
+    detailed_info = models.OneToOneField(
+        'BookDetails',  # Can reference not-yet-defined model using string
+        on_delete=models.SET_NULL,
+        related_name='book',
+        null=True,
+        blank=True,
+        help_text=_("Additional detailed information about this book")
+    )
+    
+    # Self-referential relationships
+    series_previous = models.ForeignKey(
+        'self',  # Reference to the same model
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='series_next',
+        help_text=_("Previous book in the series")
+    )
+    
+    related_books = models.ManyToManyField(
+        'self',
+        blank=True,
+        symmetrical=True,  # If A is related to B, B is related to A
+        help_text=_("Other books related to this one")
+    )
+    
+    # User relationships
+    created_by = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        related_name='created_books',
+        help_text=_("User who created this book record")
+    )
+    
+    readers = models.ManyToManyField(
+        User,
+        related_name='read_books',
+        blank=True,
+        through='Reading',  # Custom through model for additional fields
+        help_text=_("Users who have read this book")
+    )
+    
+    # JSON field (Django 3.1+)
+    metadata = models.JSONField(
+        null=True,
+        blank=True,
+        help_text=_("Additional metadata in JSON format")
+    )
+    
+    # Binary field (for raw binary data)
+    binary_data = models.BinaryField(
+        null=True,
+        blank=True,
+        help_text=_("Binary data associated with this book")
+    )
+    
+    # Custom managers
+    objects = BookManager()  # Default manager
+    available = BookManager().published()  # Pre-filtered manager
+    
+    # Meta class for model-wide options
+    class Meta:
+        verbose_name = _("Book")
+        verbose_name_plural = _("Books")
+        ordering = ['-published_date', 'title']  # Default sort order
+        indexes = [
+            models.Index(fields=['title', 'published_date']),  # Composite index
+            models.Index(fields=['isbn']),
+        ]
+        unique_together = [['title', 'publisher']]  # Cannot have same title from same publisher
+        db_table = 'bookstore_books'  # Custom database table name
+        permissions = [
+            ('can_publish_book', _('Can publish book')),
+            ('can_feature_book', _('Can mark book as featured')),
+        ]
+        default_permissions = ('add', 'change', 'delete', 'view')  # Default Django permissions
+        get_latest_by = 'published_date'  # For latest() and earliest() methods
+        abstract = False  # Not an abstract base class
+        app_label = 'bookstore'  # Which app this model belongs to
+        managed = True  # Django should manage this table creation/deletion
+        constraints = [
+            models.CheckConstraint(
+                check=models.Q(price__gte=0),
+                name='positive_price'
+            )
+        ]
+    
+    # String representation
+    def __str__(self):
+        return self.title
+    
+    # Custom save method
+    def save(self, *args, **kwargs):
+        """Override default save method"""
+        # Auto-generate slug if not provided
+        if not self.slug:
+            from django.utils.text import slugify
+            self.slug = slugify(self.title)
+            
+        # Perform custom validation
+        if self.page_count <= 0 and not kwargs.pop('skip_validation', False):
+            raise ValueError("Page count must be positive")
+            
+        # Call the original save method
+        super().save(*args, **kwargs)
+    
+    # Absolute URL
+    def get_absolute_url(self):
+        """Return URL for book detail view"""
+        return reverse('book_detail', kwargs={'slug': self.slug})
+    
+    # Custom methods
+    def mark_as_published(self):
+        """Mark book as published and set publication date"""
+        self.status = 'published'
+        if not self.published_date:
+            self.published_date = timezone.now().date()
+        self.save()
+    
+    def discount_price(self, percent):
+        """Apply discount to book price"""
+        if percent < 0 or percent > 100:
+            raise ValueError("Discount must be between 0-100%")
+        discount = (self.price * decimal.Decimal(percent) / 100)
+        return self.price - discount
+    
+    # Properties
+    @property
+    def is_recent(self):
+        """Check if the book was published recently"""
+        if not self.published_date:
+            return False
+        delta = timezone.now().date() - self.published_date
+        return delta.days < 30
+    
+    # Class methods
+    @classmethod
+    def create_from_isbn(cls, isbn):
+        """Create a book instance from ISBN (fetching data from an external API)"""
+        # This would typically involve API calls to fetch book data
+        # Simplified example:
+        book = cls(
+            isbn=isbn,
+            title=f"Book with ISBN {isbn}",
+            # Other fields would come from API
+        )
+        return book
+    
+    # Clean method for model validation
+    def clean(self):
+        """Custom validation for model instance"""
+        # Cross-field validation
+        if self.status == 'published' and not self.published_date:
+            from django.core.exceptions import ValidationError
+            raise ValidationError({
+                'published_date': _("Publication date is required for published books")
+            })
+
+
+class BookDetails(models.Model):
+    """Additional book details in a separate model (one-to-one relationship)"""
+    table_of_contents = models.TextField(blank=True)
+    target_audience = models.CharField(max_length=100, blank=True)
+    
+    def __str__(self):
+        if hasattr(self, 'book'):
+            return f"Details for {self.book.title}"
+        return "Book details"
+
+
+class BookGenre(models.Model):
+    """Through model for Book-Genre relationship with additional fields"""
+    book = models.ForeignKey(Book, on_delete=models.CASCADE)
+    genre = models.ForeignKey(Genre, on_delete=models.CASCADE)
+    relevance = models.FloatField(
+        default=1.0,
+        validators=[MinValueValidator(0.0), MaxValueValidator(1.0)],
+        help_text=_("How relevant this genre is to the book (0-1)")
+    )
+    
+    class Meta:
+        unique_together = ['book', 'genre']
+
+
+class Reading(models.Model):
+    """Through model for Book-User relationship with reading information"""
+    book = models.ForeignKey(Book, on_delete=models.CASCADE)
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    started_at = models.DateTimeField(default=timezone.now)
+    finished_at = models.DateTimeField(null=True, blank=True)
+    rating = models.PositiveSmallIntegerField(
+        null=True, 
+        blank=True,
+        validators=[MinValueValidator(1), MaxValueValidator(5)]
+    )
+    notes = models.TextField(blank=True)
+    
+    class Meta:
+        unique_together = ['book', 'user']

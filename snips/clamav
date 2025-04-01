@@ -1,0 +1,3 @@
+# clamav scanning for viruses
+clamscan -ri / --exclude-dir=^/var/www/acme/sites/default/files | tee -a $HOME/clamav.log
+-----

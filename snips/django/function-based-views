@@ -1,0 +1,850 @@
+# Django function-based views
+from django.shortcuts import render, get_object_or_404, redirect
+from django.http import (
+    HttpResponse, JsonResponse, FileResponse, 
+    HttpResponseRedirect, HttpResponsePermanentRedirect,
+    HttpResponseBadRequest, HttpResponseForbidden, 
+    HttpResponseNotFound, HttpResponseServerError
+)
+from django.template.response import TemplateResponse
+from django.urls import reverse
+from django.contrib import messages
+from django.contrib.auth.decorators import (
+    login_required, permission_required, 
+    user_passes_test
+)
+from django.views.decorators.http import (
+    require_http_methods, require_GET, 
+    require_POST, require_safe
+)
+from django.views.decorators.cache import (
+    cache_page, never_cache
+)
+from django.views.decorators.csrf import (
+    csrf_protect, csrf_exempt, 
+    ensure_csrf_cookie, requires_csrf_token
+)
+from django.views.decorators.gzip import gzip_page
+from django.views.decorators.vary import vary_on_headers, vary_on_cookie
+from django.core.paginator import Paginator
+from django.db.models import Q, Count, Sum, Avg
+from django.utils.translation import gettext_lazy as _
+from django.core.exceptions import PermissionDenied
+from django.http import Http404
+from django.utils import timezone
+import json
+import logging
+import csv
+
+from .models import Book, Author, Publisher, Genre
+from .forms import BookForm, AuthorForm, ContactForm, SearchForm
+
+
+# ======================================================================
+# FUNCTION-BASED VIEWS (FBVs)
+# ======================================================================
+
+# ----------------------
+# Basic Function Views
+# ----------------------
+
+def basic_view(request):
+    """
+    Most basic function-based view
+    """
+    return HttpResponse("Hello, World!")
+
+
+def template_view(request):
+    """
+    Function view that renders a template with context data
+    """
+    context = {
+        'title': 'Book List',
+        'books': Book.objects.all(),
+        'current_year': 2025,
+    }
+    return render(request, 'books/book_list.html', context)
+
+
+def dynamic_template_view(request, template_name='default.html'):
+    """
+    View that accepts a template name parameter
+    """
+    context = {'message': 'Dynamic template example'}
+    return render(request, template_name, context)
+
+
+# ----------------------
+# URL Parameters
+# ----------------------
+
+def book_detail(request, book_id):
+    """
+    View that accepts a URL parameter and raises 404 if not found
+    """
+    book = get_object_or_404(Book, id=book_id)
+    return render(request, 'books/book_detail.html', {'book': book})
+
+
+def book_by_slug(request, slug, year=None, month=None):
+    """
+    View with multiple URL parameters, some optional
+    """
+    book = get_object_or_404(Book, slug=slug)
+    
+    # Optional parameters
+    if year and month:
+        # Do something with year and month
+        context = {
+            'book': book,
+            'year': year,
+            'month': month,
+        }
+    else:
+        context = {'book': book}
+        
+    return render(request, 'books/book_detail.html', context)
+
+
+def query_parameters(request):
+    """
+    Handling query parameters from the URL
+    """
+    search_query = request.GET.get('q', '')
+    sort_by = request.GET.get('sort', 'title')
+    page = request.GET.get('page', 1)
+    
+    books = Book.objects.all()
+    
+    # Filter by search query if provided
+    if search_query:
+        books = books.filter(
+            Q(title__icontains=search_query) | 
+            Q(description__icontains=search_query)
+        )
+    
+    # Sort results
+    books = books.order_by(sort_by)
+    
+    # Paginate results
+    paginator = Paginator(books, 10)  # 10 books per page
+    books_page = paginator.get_page(page)
+    
+    context = {
+        'books': books_page,
+        'query': search_query,
+        'sort_by': sort_by,
+        'page_obj': books_page,  # For pagination template
+    }
+    
+    return render(request, 'books/search_results.html', context)
+
+
+# ----------------------
+# HTTP Methods
+# ----------------------
+
+def http_method_demo(request):
+    """
+    View that handles different HTTP methods
+    """
+    if request.method == 'GET':
+        return HttpResponse("This is a GET request")
+    elif request.method == 'POST':
+        return HttpResponse("This is a POST request")
+    elif request.method == 'PUT':
+        return HttpResponse("This is a PUT request")
+    elif request.method == 'DELETE':
+        return HttpResponse("This is a DELETE request")
+    else:
+        return HttpResponse("This is another type of request")
+
+
+@require_http_methods(["GET", "POST"])
+def limited_methods(request):
+    """
+    View that only accepts specific HTTP methods
+    """
+    if request.method == 'GET':
+        return HttpResponse("GET request received")
+    else:  # POST (only other allowed method)
+        return HttpResponse("POST request received")
+
+
+@require_GET
+def get_only_view(request):
+    """
+    View that only accepts GET requests
+    """
+    return HttpResponse("This view only accepts GET requests")
+
+
+@require_POST
+def post_only_view(request):
+    """
+    View that only accepts POST requests
+    """
+    return HttpResponse("This view only accepts POST requests")
+
+
+@require_safe
+def safe_methods_view(request):
+    """
+    View that only accepts safe methods (GET, HEAD, OPTIONS)
+    """
+    return HttpResponse("This view only accepts safe HTTP methods")
+
+
+# ----------------------
+# Form Handling
+# ----------------------
+
+def form_view(request):
+    """
+    Basic form handling view
+    """
+    if request.method == 'POST':
+        form = BookForm(request.POST, request.FILES)
+        if form.is_valid():
+            # Process form data
+            book = form.save()
+            messages.success(request, f"Book '{book.title}' created successfully!")
+            return redirect('book_detail', book_id=book.id)
+    else:
+        form = BookForm()
+    
+    return render(request, 'books/book_form.html', {'form': form})
+
+
+def advanced_form_view(request):
+    """
+    More advanced form handling with custom validation and file uploads
+    """
+    if request.method == 'POST':
+        form = BookForm(request.POST, request.FILES)
+        if form.is_valid():
+            # Start by creating book but don't save to database yet
+            book = form.save(commit=False)
+            
+            # Perform additional processing
+            book.created_by = request.user
+            
+            # Manual validation beyond form validation
+            if book.price < 0:
+                form.add_error('price', 'Price cannot be negative')
+                return render(request, 'books/book_form.html', {'form': form})
+            
+            # Now save the book
+            book.save()
+            
+            # For many-to-many relationships, save_m2m() must be called
+            # after saving with commit=False
+            form.save_m2m()
+            
+            # Handle uploaded files
+            if 'cover_image' in request.FILES:
+                # File is automatically saved by the model field
+                # but you could process it further here
+                pass
+                
+            messages.success(request, f"Book '{book.title}' created successfully!")
+            return redirect('book_detail', book_id=book.id)
+    else:
+        # Initialize form with default values
+        initial_data = {
+            'language': 'en',
+            'status': 'draft',
+        }
+        form = BookForm(initial=initial_data)
+    
+    return render(
+        request, 
+        'books/book_form.html', 
+        {
+            'form': form,
+            'is_create': True,  # Let template know this is a create view
+        }
+    )
+
+
+def multiple_forms_view(request):
+    """
+    View handling multiple forms on the same page
+    """
+    book_form = BookForm(
+        request.POST or None, 
+        request.FILES or None, 
+        prefix='book'
+    )
+    author_form = AuthorForm(
+        request.POST or None, 
+        prefix='author'
+    )
+    
+    if request.method == 'POST':
+        form_type = request.POST.get('form_type')
+        
+        if form_type == 'book' and book_form.is_valid():
+            book = book_form.save()
+            messages.success(request, f"Book '{book.title}' saved!")
+            return redirect('book_detail', book_id=book.id)
+            
+        elif form_type == 'author' and author_form.is_valid():
+            author = author_form.save()
+            messages.success(request, f"Author '{author.name}' saved!")
+            return redirect('author_detail', author_id=author.id)
+    
+    context = {
+        'book_form': book_form,
+        'author_form': author_form,
+    }
+    return render(request, 'books/multiple_forms.html', context)
+
+
+def formset_view(request):
+    """
+    View handling formsets for creating multiple related objects
+    """
+    from django.forms import modelformset_factory, inlineformset_factory
+    
+    # Create a formset for authors (unrelated to a specific book)
+    AuthorFormSet = modelformset_factory(
+        Author, 
+        fields=('name',), 
+        extra=3,  # 3 empty forms
+        max_num=10,  # Maximum 10 forms
+        can_delete=True,  # Allow marking items for deletion
+    )
+    
+    if request.method == 'POST':
+        formset = AuthorFormSet(request.POST, prefix='authors')
+        if formset.is_valid():
+            # Save all forms in the formset
+            instances = formset.save()
+            messages.success(request, f"Saved {len(instances)} authors!")
+            return redirect('author_list')
+    else:
+        formset = AuthorFormSet(prefix='authors')
+    
+    return render(request, 'books/formset.html', {'formset': formset})
+
+
+def inline_formset_view(request, book_id):
+    """
+    View handling inline formsets for related objects
+    """
+    from django.forms import inlineformset_factory
+    
+    book = get_object_or_404(Book, id=book_id)
+    
+    # Create an inline formset for BookGenre objects related to a book
+    BookGenreFormSet = inlineformset_factory(
+        Book,  # parent model
+        'BookGenre',  # model for inline
+        fields=('genre', 'relevance'),  # fields to include
+        extra=3,  # 3 extra empty forms
+        can_delete=True,  # Allow marking items for deletion
+    )
+    
+    if request.method == 'POST':
+        formset = BookGenreFormSet(request.POST, instance=book, prefix='genres')
+        if formset.is_valid():
+            formset.save()
+            messages.success(request, "Book genres updated successfully!")
+            return redirect('book_detail', book_id=book.id)
+    else:
+        formset = BookGenreFormSet(instance=book, prefix='genres')
+    
+    return render(
+        request, 
+        'books/book_genres.html', 
+        {
+            'book': book,
+            'formset': formset,
+        }
+    )
+
+
+def ajax_form_view(request):
+    """
+    View handling AJAX form submissions
+    """
+    if request.method == 'POST' and request.headers.get('x-requested-with') == 'XMLHttpRequest':
+        form = BookForm(request.POST)
+        if form.is_valid():
+            book = form.save()
+            # Return JSON response with success message and data
+            return JsonResponse({
+                'success': True,
+                'book_id': book.id,
+                'book_title': book.title,
+                'message': f"Book '{book.title}' created successfully!"
+            })
+        else:
+            # Return JSON with form errors
+            return JsonResponse({
+                'success': False,
+                'errors': form.errors.as_json()
+            })
+    
+    # For GET requests or non-AJAX POST, render regular form
+    form = BookForm()
+    return render(request, 'books/ajax_form.html', {'form': form})
+
+
+# ----------------------
+# Response Types
+# ----------------------
+
+def html_response(request):
+    """
+    Return a basic HTML response
+    """
+    html = """
+    <!DOCTYPE html>
+    <html>
+    <head><title>Simple HTML Response</title></head>
+    <body>
+        <h1>Hello, World!</h1>
+        <p>This is a simple HTML response.</p>
+    </body>
+    </html>
+    """
+    return HttpResponse(html, content_type='text/html')
+
+
+def json_response(request):
+    """
+    Return a JSON response
+    """
+    data = {
+        'books': [
+            {'id': 1, 'title': 'Django for Beginners'},
+            {'id': 2, 'title': 'Django for Professionals'},
+        ],
+        'count': 2,
+        'status': 'success'
+    }
+    return JsonResponse(data, safe=False, json_dumps_params={'indent': 2})
+
+
+def streaming_response(request):
+    """
+    Stream a large response
+    """
+    def generate_data():
+        for i in range(1000):
+            yield f"Line {i+1}\n"
+    
+    return HttpResponse(
+        streaming_content=generate_data(),
+        content_type='text/plain'
+    )
+
+
+def file_response(request, filename):
+    """
+    Return a file download response
+    """
+    import os
+    from django.conf import settings
+    
+    file_path = os.path.join(settings.MEDIA_ROOT, 'documents', filename)
+    
+    if os.path.exists(file_path):
+        response = FileResponse(
+            open(file_path, 'rb'),
+            as_attachment=True,  # Force download
+            filename=os.path.basename(file_path)
+        )
+        return response
+    else:
+        raise Http404("File not found")
+
+
+def csv_response(request):
+    """
+    Return a CSV file
+    """
+    import csv
+    
+    # Get data
+    books = Book.objects.all()
+    
+    # Create a response object with CSV content type
+    response = HttpResponse(content_type='text/csv')
+    response['Content-Disposition'] = 'attachment; filename="books.csv"'
+    
+    # Create CSV writer and write data
+    writer = csv.writer(response)
+    writer.writerow(['ID', 'Title', 'Author', 'Published Date', 'Price'])
+    
+    for book in books:
+        writer.writerow([
+            book.id,
+            book.title,
+            book.main_author.name if book.main_author else 'Unknown',
+            book.published_date,
+            book.price
+        ])
+    
+    return response
+
+
+def pdf_response(request, book_id):
+    """
+    Generate and return a PDF file
+    """
+    from reportlab.pdfgen import canvas
+    from io import BytesIO
+    
+    book = get_object_or_404(Book, id=book_id)
+    
+    # Create a BytesIO buffer
+    buffer = BytesIO()
+    
+    # Create the PDF object using the BytesIO buffer
+    p = canvas.Canvas(buffer)
+    
+    # Draw content on the PDF
+    p.setFont("Helvetica", 16)
+    p.drawString(100, 800, f"Book: {book.title}")
+    p.setFont("Helvetica", 12)
+    p.drawString(100, 780, f"Author: {book.main_author.name if book.main_author else 'Unknown'}")
+    p.drawString(100, 760, f"Published: {book.published_date}")
+    p.drawString(100, 740, f"Price: ${book.price}")
+    
+    # Close the PDF object
+    p.showPage()
+    p.save()
+    
+    # Get the value of the BytesIO buffer
+    pdf = buffer.getvalue()
+    buffer.close()
+    
+    # Create the HttpResponse object with appropriate headers
+    response = HttpResponse(content_type='application/pdf')
+    response['Content-Disposition'] = f'attachment; filename="book_{book.id}.pdf"'
+    
+    # Write the PDF to the response
+    response.write(pdf)
+    return response
+
+
+def redirect_view(request):
+    """
+    Redirect to another URL
+    """
+    # Redirect to absolute URL
+    # return HttpResponseRedirect('https://example.com/')
+    
+    # Redirect to another view using reverse
+    return HttpResponseRedirect(reverse('book_list'))
+
+
+def permanent_redirect_view(request, old_id):
+    """
+    Permanent redirect (301) for SEO
+    """
+    return HttpResponsePermanentRedirect(
+        reverse('new_book_view', kwargs={'id': old_id})
+    )
+
+
+def redirect_with_args(request):
+    """
+    Redirect with query parameters
+    """
+    return redirect('search_books')  # Named URL pattern
+    # Or with parameters:
+    # return redirect('book_detail', book_id=1)  # Named URL with parameters
+    # return redirect('/books/1/')  # Hard-coded URL
+
+
+def custom_status_view(request):
+    """
+    Return response with custom status code
+    """
+    return HttpResponse(
+        "This is a custom status code response",
+        status=203  # Non-Authoritative Information
+    )
+
+
+# ----------------------
+# Error Handling
+# ----------------------
+
+def error_400_view(request, exception=None):
+    """
+    Handle 400 Bad Request errors
+    """
+    return HttpResponseBadRequest("Bad Request: The request cannot be fulfilled")
+
+
+def error_403_view(request, exception=None):
+    """
+    Handle 403 Forbidden errors
+    """
+    return HttpResponseForbidden("Forbidden: You don't have permission to access this resource")
+
+
+def error_404_view(request, exception=None):
+    """
+    Handle 404 Not Found errors
+    """
+    return HttpResponseNotFound("Not Found: The requested resource was not found")
+
+
+def error_500_view(request):
+    """
+    Handle 500 Server Error
+    """
+    return HttpResponseServerError("Server Error: Something went wrong on our end")
+
+
+def custom_error_handling(request):
+    """
+    Custom error handling in a view
+    """
+    try:
+        # Some code that might raise exceptions
+        value = int(request.GET.get('value', ''))
+        result = 100 / value
+        
+        return HttpResponse(f"Result: {result}")
+    
+    except ValueError:
+        return HttpResponseBadRequest("Invalid input: Please provide a valid number")
+    except ZeroDivisionError:
+        return HttpResponseBadRequest("Invalid input: Cannot divide by zero")
+    except Exception as e:
+        # Log the error
+        logger = logging.getLogger(__name__)
+        logger.error(f"Unexpected error: {str(e)}")
+        
+        # Return a user-friendly error
+        return HttpResponseServerError("An unexpected error occurred")
+
+
+# ----------------------
+# Authentication and Authorization
+# ----------------------
+
+@login_required(login_url='/accounts/login/')
+def protected_view(request):
+    """
+    View that requires user to be logged in
+    """
+    return render(request, 'books/protected.html')
+
+
+@login_required
+@permission_required('books.can_publish_book', raise_exception=True)
+def publish_book(request, book_id):
+    """
+    View that requires both login and specific permission
+    """
+    book = get_object_or_404(Book, id=book_id)
+    
+    if request.method == 'POST':
+        book.status = 'published'
+        book.save()
+        messages.success(request, f"Book '{book.title}' published successfully!")
+        return redirect('book_detail', book_id=book.id)
+    
+    return render(request, 'books/publish_confirmation.html', {'book': book})
+
+
+def check_user_permissions(user):
+    """
+    Custom function to check if user passes certain criteria
+    """
+    # Example: Check if user is staff or has been active for over 30 days
+    if user.is_staff:
+        return True
+    
+    from datetime import timedelta
+    from django.utils import timezone
+    
+    account_age = timezone.now() - user.date_joined
+    return account_age > timedelta(days=30)
+
+
+@user_passes_test(check_user_permissions, login_url='/accounts/access-denied/')
+def staff_or_30days_view(request):
+    """
+    View accessible only to staff or users registered for over 30 days
+    """
+    return render(request, 'books/special_access.html')
+
+
+def manual_permission_check(request):
+    """
+    View with manual permission checking
+    """
+    if not request.user.is_authenticated:
+        return redirect(f"/accounts/login/?next={request.path}")
+    
+    if not request.user.has_perm('books.can_publish_book'):
+        raise PermissionDenied("You don't have permission to access this page.")
+    
+    # If passed checks, render the view
+    return render(request, 'books/publisher_dashboard.html')
+
+
+# ----------------------
+# Cache and Performance
+# ----------------------
+
+@cache_page(60 * 15)  # Cache for 15 minutes
+def cached_view(request):
+    """
+    View that caches the result for 15 minutes
+    """
+    # Expensive database query or processing
+    books = Book.objects.annotate(
+        num_readers=Count('readers')
+    ).order_by('-num_readers')[:10]
+    
+    return render(request, 'books/popular_books.html', {'books': books})
+
+
+@never_cache
+def uncached_view(request):
+    """
+    View that should never be cached
+    """
+    return render(request, 'books/latest_update.html')
+
+
+@vary_on_headers('User-Agent')
+def browser_specific_view(request):
+    """
+    View that varies output based on User-Agent header
+    """
+    user_agent = request.META.get('HTTP_USER_AGENT', '')
+    
+    if 'Mobile' in user_agent:
+        template = 'books/mobile_view.html'
+    else:
+        template = 'books/desktop_view.html'
+    
+    return render(request, template, {'user_agent': user_agent})
+
+
+@vary_on_cookie
+def user_specific_view(request):
+    """
+    View that varies output based on cookies
+    """
+    return render(request, 'books/user_specific.html')
+
+
+@gzip_page
+def gzipped_view(request):
+    """
+    View that compresses its response with gzip
+    """
+    large_data = "..." * 1000  # Large amount of text
+    return HttpResponse(large_data)
+
+
+# ----------------------
+# CSRF Protection
+# ----------------------
+
+@csrf_protect
+def protected_form_view(request):
+    """
+    View with CSRF protection (default for all forms in Django)
+    """
+    return render(request, 'books/protected_form.html')
+
+
+@csrf_exempt
+def unprotected_api_endpoint(request):
+    """
+    API endpoint without CSRF protection
+    """
+    if request.method == 'POST':
+        data = json.loads(request.body)
+        # Process API request
+        return JsonResponse({'status': 'success'})
+    return JsonResponse({'status': 'only POST allowed'}, status=405)
+
+
+@ensure_csrf_cookie
+def spa_view(request):
+    """
+    View that ensures a CSRF cookie is set (useful for JS applications)
+    """
+    return render(request, 'books/spa_index.html')
+
+
+@requires_csrf_token
+def custom_template_view(request):
+    """
+    View that doesn't check CSRF but includes token in template
+    """
+    return render(request, 'books/custom_template.html')
+
+
+# ----------------------
+# Testing Helpers
+# ----------------------
+
+def debug_view(request):
+    """
+    View for debugging with useful information
+    """
+    context = {
+        'path': request.path,
+        'method': request.method,
+        'user': request.user,
+        'GET': dict(request.GET.items()),
+        'POST': dict(request.POST.items()),
+        'COOKIES': dict(request.COOKIES.items()),
+        'META': {k: v for k, v in request.META.items() if k.startswith('HTTP_')},
+        'is_ajax': request.headers.get('x-requested-with') == 'XMLHttpRequest',
+        'is_secure': request.is_secure(),
+    }
+    return render(request, 'debug.html', context)
+
+
+def simulate_error(request):
+    """
+    View that intentionally raises errors for testing
+    """
+    error_type = request.GET.get('type', 'not_found')
+    
+    if error_type == '404':
+        raise Http404("Page not found")
+    elif error_type == '403':
+        raise PermissionDenied("Access forbidden")
+    elif error_type == '500':
+        raise Exception("Simulated server error")
+    else:
+        return HttpResponse(f"Error simulation for: {error_type}")
+
+
+# ----------------------
+# URL Configuration for Function-Based Views
+# ----------------------
+
+"""
+Examples of URL patterns for these views (belongs in urls.py, not views.py)
+
+# Function-Based Views
+urlpatterns = [
+    path('', template_view, name='home'),
+    path('books/', template_view, name='book_list'),
+    path('books/<int:book_id>/', book_detail, name='book_detail'),
+    path('books/<slug:slug>/', book_by_slug, name='book_by_slug'),
+    path('books/<slug:slug>/<int:year>/<int:month>/', book_by_slug, name='book_archive'),
+    path('search/', query_parameters, name='search_books'),
+    path('contact/', form_view, name='contact'),
+    path('export/csv/', csv_response, name='export_csv'),
+]
+"""

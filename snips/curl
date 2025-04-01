@@ -1,0 +1,3 @@
+# Username and Password
+curl http://natas2.natas.labs.overthewire.org/ -u natas2:TguMNxKo1DSa1tujBLuZJnDUlCcUAPl
+-----

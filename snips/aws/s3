@@ -1,2 +1,11 @@
 # AWS S3 ls anonymous principal
 aws s3 ls --no-sign-request $S3_BUCKET_PATH
+
+# empty recursively a bucket
+aws s3 rm s3://bucket-name --recursive
+
+# delete bucket
+aws s3 rb s3://amzn-s3-demo-bucket --force  
+
+# Get part of a big object by bytes range
+aws s3api get-object --bucket amzn-s3-demo-bucket1 --key folder/my_data --range bytes=0-500 my_data_range

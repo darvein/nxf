@@ -1,0 +1,35 @@
+# aws vpc
+resource "aws_vpc" "main" {
+  cidr_block                       = "10.0.0.0/16"
+  instance_tenancy                 = "default"
+  enable_dns_support               = true
+  enable_dns_hostnames             = false
+  enable_classiclink               = false
+  enable_classiclink_dns_support   = false
+  assign_generated_ipv6_cidr_block = false
+  
+  tags = merge(var.tags, { "Name" = "main-vpc"})
+}
+-----
+# aws subnet
+resource "aws_subnet" "main" {
+  vpc_id            = aws_vpc.example.id
+  cidr_block        = "10.0.1.0/24"
+  availability_zone = "us-west-2a"
+  
+  assign_ipv6_address_on_creation = false
+  map_public_ip_on_launch         = false
+  ipv6_cidr_block                 = null
+  
+  customer_owned_ipv4_pool   = null
+  map_customer_owned_ip_on_launch = false
+  outpost_arn                     = null
+  
+  timeouts {
+    create = "10m"
+    delete = "10m"
+  }
+  
+  tags = merge(var.tags, { "Name" = "example-subnet"})
+}
+-----

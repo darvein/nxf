@@ -1,0 +1,4 @@
+# Get kubernetes config
+ aws eks get-token --cluster-name $CLUSTER_NAME --region $AWS_REGION
+ aws eks update-kubeconfig --name $CLUSTER_NAME --region $AWS_REGION
+-----

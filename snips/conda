@@ -1,0 +1,10 @@
+# Cleanup conda envs
+conda remove --name $ENVNAME --all
+conda clean --all
+conda build purge-all
+conda update conda
+-----
+# Conda install env
+conda create -n ri python=3.9
+conda activate ri
+-----

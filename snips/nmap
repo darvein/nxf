@@ -11,3 +11,9 @@ nmap -p 22,80 -sCV -oA scans/nmap-tcpscripts $IP
 nmap -nv -Pn -sV -sC -O -T4 -oA nmap-scan 10.129.36.200
 
 nmap -P0 -n -p1-65535 --open --reason -sS -T5 --min-parallelism 65535 --max-retries 2
+
+# Scan local network
+nmap -sn $CIDR
+
+# udp scanning
+nmap -sU -p 161,162 -sV --script "snmp*" $HOST
