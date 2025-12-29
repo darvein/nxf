@@ -1,6 +1,70 @@
-# Psql connect
-psql -h $HOST -U $USER $DBNAME
-
+# Postgresql basics
+sudo -u postgres psql
+psql -d database_name
+psql -U username -d database_name
+psql -h hostname -U username -d database_name -p 5432
+psql -U username -d database_name -W
+psql "postgresql://username:password@hostname:5432/database_name"
+psql -U username -d database_name -c "SELECT version();"
+psql -U username -d database_name -f script.sql
+-----
 # psql cli
 \c dbname # connect to database
 \dt # list tables
+-- Connect to different database
+\c database_name
+\connect database_name
+
+-- Show current database
+SELECT current_database();
+
+-- Create database (from psql)
+CREATE DATABASE mydb;
+
+-- Create database (from shell)
+createdb mydb
+
+-- Drop database
+DROP DATABASE mydb;
+
+-- Drop database (from shell)
+dropdb mydb
+
+-- List all schemas
+\dn
+
+-- List all tables in current database
+\dt
+
+-- List all tables with details (size, description)
+\dt+
+
+-- List tables in specific schema
+\dt schema_name.*
+
+-- List all tables, views, and sequences
+\d
+
+-- Describe specific table structure
+\d table_name
+
+-- Describe table with detailed info
+\d+ table_name
+
+-- List all views
+\dv
+
+-- List all indexes
+\di
+
+-- List all sequences
+\ds
+
+-- List all functions
+\df
+
+-- List all users/roles
+\du
+
+-- List all databases with size
+\l+

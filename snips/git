@@ -1,4 +1,3 @@
-/* vim: set ft=bash : */
 -----
 # Revert a file back up to a commit id
 git checkout $COMMIT_ID -- $YOUR_FILE

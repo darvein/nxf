@@ -1,0 +1,8 @@
+# Add iam user to eks cluster
+eksctl create iamidentitymapping \
+  --cluster Incollect-Development-eks \
+  --region us-east-1 \
+  --arn arn:aws:iam::561653710657:user/github-devops-ci  \
+  --username github-devops-ci \
+  --group system:masters
+-----

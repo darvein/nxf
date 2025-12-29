@@ -1,0 +1,3 @@
+# download youtube clip mp4
+yt-dlp 'https://youtube.com/clip/UgkxYEe2r5lxzZqJ7uMe4kJ8ix7WV-QMwxv0?si=228eyAGpiC7Snf-w' -S res,ext:mp4:m4a --recode mp4
+-----

@@ -5,3 +5,162 @@ helm history --name=mysql
 helm rollback mysql 2
 helm rollback mysql 0	# Rollback to the latest working release version
 helm status mysql
+-----
+# Repository Management
+helm repo add bitnami https://charts.bitnami.com/bitnami
+helm repo add stable https://charts.helm.sh/stable
+helm repo update
+helm repo list
+helm repo remove bitnami
+-----
+# Searching Charts
+helm search repo nginx
+helm search repo database
+helm search hub wordpress
+helm search repo bitnami/nginx --versions
+helm search repo 'bitnami/*sql'
+-----
+# Chart Information
+helm show chart bitnami/nginx
+helm show values bitnami/nginx
+helm show readme bitnami/nginx
+helm show all bitnami/nginx
+helm show values bitnami/nginx --version 13.2.0
+-----
+# Installing Releases
+helm install bitnami/nginx --generate-name
+helm install my-nginx bitnami/nginx
+helm install my-nginx bitnami/nginx --set replicaCount=3
+helm install my-nginx bitnami/nginx --set replicaCount=3,service.type=LoadBalancer
+helm install my-nginx bitnami/nginx -f values.yaml
+helm install my-nginx bitnami/nginx -f values1.yaml -f values2.yaml
+helm install my-nginx bitnami/nginx -n production
+helm install my-nginx bitnami/nginx -n production --create-namespace
+helm install my-nginx bitnami/nginx --version 13.2.0
+helm install my-app ./my-chart
+helm install my-app my-chart-0.1.0.tgz
+helm install my-app https://example.com/charts/my-chart-0.1.0.tgz
+helm install my-nginx bitnami/nginx --wait --timeout 10m
+helm install my-nginx bitnami/nginx --atomic --timeout 5m
+helm install my-nginx bitnami/nginx --skip-crds
+helm install my-nginx bitnami/nginx --set-file config=./config.txt
+-----
+# Dry Run and Testing
+helm install my-nginx bitnami/nginx --dry-run
+helm install my-nginx bitnami/nginx --dry-run --debug
+helm template my-nginx bitnami/nginx
+helm template my-nginx bitnami/nginx > manifests.yaml
+helm template my-nginx bitnami/nginx -n production
+helm install my-nginx bitnami/nginx --dry-run --debug --disable-openapi-validation
+-----
+# Listing Releases
+helm list
+helm list -q
+helm list --all-namespaces
+helm list -n production
+helm list --all
+helm list --deployed
+helm list --failed
+helm list --pending
+helm list --max 10
+helm list --filter 'nginx.*'
+-----
+# Release Information
+helm status my-nginx
+helm status my-nginx -n production
+helm get values my-nginx
+helm get values my-nginx --all
+helm get values my-nginx -o json
+helm get values my-nginx -o yaml > current-values.yaml
+helm get manifest my-nginx
+helm get manifest my-nginx > release-manifest.yaml
+helm get notes my-nginx
+helm get all my-nginx
+helm get all my-nginx --revision 2
+helm get hooks my-nginx
+-----
+# Upgrading Releases
+helm upgrade my-nginx bitnami/nginx
+helm upgrade my-nginx bitnami/nginx --set replicaCount=5
+helm upgrade my-nginx bitnami/nginx -f values.yaml
+helm upgrade my-nginx bitnami/nginx --version 13.2.0
+helm upgrade --install my-nginx bitnami/nginx
+helm upgrade my-nginx bitnami/nginx --force
+helm upgrade my-nginx bitnami/nginx --wait --timeout 5m
+helm upgrade my-nginx bitnami/nginx --reset-values
+helm upgrade my-nginx bitnami/nginx --reuse-values
+helm upgrade my-nginx bitnami/nginx --reset-values --set replicaCount=3
+helm upgrade my-nginx bitnami/nginx -n production
+helm upgrade my-nginx bitnami/nginx --atomic
+helm upgrade my-nginx bitnami/nginx --cleanup-on-fail
+-----
+# Release History and Rollback
+helm history my-nginx
+helm history my-nginx -n production
+helm history my-nginx --max 10
+helm rollback my-nginx
+helm rollback my-nginx 3
+helm rollback my-nginx 2 -n production
+helm rollback my-nginx --wait
+helm rollback my-nginx --cleanup-on-fail
+helm rollback my-nginx --dry-run
+-----
+# Uninstalling Releases
+helm uninstall my-nginx
+helm uninstall my-nginx --keep-history
+helm uninstall my-nginx -n production
+helm uninstall my-nginx --timeout 5m
+helm uninstall my-nginx --no-hooks
+helm uninstall my-nginx --dry-run
+-----
+# Downloading Charts
+helm pull bitnami/nginx
+helm pull bitnami/nginx --untar
+helm pull bitnami/nginx --version 13.2.0
+helm pull bitnami/nginx --destination ./charts
+helm pull bitnami/nginx --untar --untardir ./my-charts
+helm pull bitnami/nginx --untar --untardir ./charts
+-----
+# Chart Development
+helm create my-chart
+helm create ./charts/my-chart
+helm lint ./my-chart
+helm lint ./my-chart -f values.yaml
+helm lint ./my-chart --strict
+helm package ./my-chart
+helm package ./my-chart --version 1.0.0
+helm package ./my-chart --app-version 2.0.0
+helm package ./my-chart --destination ./dist
+helm package ./my-chart --dependency-update
+-----
+# Chart Dependencies
+helm dependency list ./my-chart
+helm dependency update ./my-chart
+helm dependency build ./my-chart
+-----
+# Testing Releases
+helm test my-nginx
+helm test my-nginx -n production
+helm test my-nginx --logs
+helm test my-nginx --timeout 5m
+-----
+# Plugin Management
+helm plugin list
+helm plugin install https://github.com/databus23/helm-diff
+helm plugin install ./my-plugin
+helm plugin update diff
+helm plugin uninstall diff
+-----
+# System and Environment
+helm version
+helm version --short
+helm env
+-----
+# Advanced Operations
+helm verify my-chart-0.1.0.tgz
+helm dependency list ./my-chart
+helm diff revision my-nginx 1 2
+helm diff upgrade my-nginx bitnami/nginx -f values.yaml
+helm template my-nginx ./my-chart --debug
+helm template my-nginx ./my-chart --validate
+-----
