@@ -1,0 +1,132 @@
+# Basic usage
+echo "file.txt" | xargs cat            # Pass as argument
+find . -name "*.txt" | xargs cat       # Process multiple files
+-----
+# Replace string
+ls *.txt | xargs -I {} cp {} {}.bak    # -I for placeholder
+ls *.txt | xargs -I file cp file file.bak
+find . -name "*.log" | xargs -I {} mv {} /archive/
+-----
+# Parallel execution
+ls *.jpg | xargs -P 4 -I {} convert {} {}.png    # 4 parallel processes
+find . -name "*.mp4" | xargs -P 8 -I {} ffmpeg -i {} {}.mp3
+cat urls.txt | xargs -P 10 -I {} curl -O {}
+-----
+# Limit arguments per command
+echo {1..10} | xargs -n 2              # 2 args per invocation
+ls | xargs -n 1 echo "File:"           # 1 arg per invocation
+-----
+# Delimiter
+echo "a:b:c" | xargs -d: echo          # Use : as delimiter
+echo "a,b,c" | xargs -d, echo          # Use , as delimiter
+-----
+# Handle spaces in filenames
+find . -name "*.txt" -print0 | xargs -0 rm
+find . -type f -print0 | xargs -0 grep "pattern"
+-----
+# Interactive mode
+echo "file1 file2" | xargs -p rm       # Prompt before execution
+-----
+# Verbose mode
+echo "a b c" | xargs -t echo           # Show command being executed
+-----
+# Exit on error
+find . -name "*.sh" -print0 | xargs -0 -E "" bash -c 'chmod +x "$@"' _
+-----
+# Max characters
+echo "a b c d e" | xargs -s 10 echo    # Max 10 chars per command
+-----
+# Construct complex commands
+find . -name "*.txt" | xargs -I {} sh -c 'echo "Processing: {}"; cat {}'
+find . -type f | xargs -I {} sh -c 'wc -l {} | awk "{print \$1, \"{}\"}"'
+-----
+# Multiple commands per file
+cat files.txt | xargs -I {} sh -c 'head -1 {} && tail -1 {}'
+-----
+# Batch processing
+seq 1 100 | xargs -n 10 -P 4 -I {} sh -c 'process_batch {}'
+-----
+# Remove files
+find /tmp -name "*.tmp" -print0 | xargs -0 rm
+find . -type f -size 0 -print0 | xargs -0 -r rm    # -r: don't run if empty
+-----
+# Rename files
+ls *.txt | xargs -I {} mv {} {}.backup
+find . -name "*.jpeg" | xargs -I {} mv {} {}.jpg
+-----
+# Download files
+cat urls.txt | xargs -P 5 -n 1 wget
+cat urls.txt | xargs -P 10 -I {} curl -O {}
+-----
+# Compress files
+find . -name "*.log" -mtime +30 | xargs -I {} gzip {}
+ls *.txt | xargs tar -czf archive.tar.gz
+-----
+# Search and replace in files
+find . -name "*.py" -print0 | xargs -0 sed -i 's/old/new/g'
+grep -l "pattern" *.txt | xargs sed -i 's/pattern/replacement/g'
+-----
+# Process with multiple arguments
+cat list.txt | xargs -n 2 sh -c 'echo "From: $0 To: $1"'
+-----
+# Convert images
+ls *.png | xargs -P 4 -I {} convert {} -resize 50% small-{}
+find . -name "*.jpg" | xargs -P 8 -I {} mogrify -quality 80 {}
+-----
+# Run tests
+find tests/ -name "test_*.py" | xargs -n 1 python
+ls test_*.js | xargs -P 4 -I {} node {}
+-----
+# Git operations
+git diff --name-only | xargs git add
+git ls-files | xargs wc -l
+-----
+# Docker cleanup
+docker ps -aq | xargs docker rm
+docker images -q | xargs docker rmi
+-----
+# Permission changes
+find . -type f -name "*.sh" | xargs chmod +x
+find . -type d | xargs chmod 755
+-----
+# Count lines in multiple files
+find . -name "*.js" | xargs wc -l | sort -n
+-----
+# Grep in multiple files
+find . -name "*.py" | xargs grep -l "def main"
+find . -type f | xargs grep -H "TODO"
+-----
+# Backup files
+find /etc -name "*.conf" | xargs -I {} cp {} {}.backup
+-----
+# Process log files
+find /var/log -name "*.log" | xargs -I {} sh -c 'echo "{}:"; grep ERROR {}'
+-----
+# Create directories
+cat dirs.txt | xargs mkdir -p
+echo "a/b/c d/e/f" | xargs -n 1 mkdir -p
+-----
+# Rsync multiple files
+cat files.txt | xargs -I {} rsync -avz {} user@remote:/path/
+-----
+# Check file existence
+cat files.txt | xargs -I {} test -f {} && echo "{} exists"
+-----
+# Apply command to stdin and files
+echo "hello" | xargs -I {} echo "Text: {}"
+-----
+# Combine with other tools
+find . -name "*.txt" | xargs cat | grep "pattern"
+ls *.csv | xargs -I {} awk -F, '{print $1}' {}
+-----
+# Safe removal with confirmation
+find . -name "*.tmp" | xargs -p -I {} rm {}
+-----
+# Process JSON files
+find . -name "*.json" | xargs -I {} jq '.field' {}
+-----
+# Monitor and process
+tail -f log.txt | xargs -I {} echo "New line: {}"
+-----
+# Avoid "Argument list too long" error
+find . -name "*.txt" -print0 | xargs -0 command

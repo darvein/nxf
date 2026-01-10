@@ -1,0 +1,122 @@
+# Basic search
+grep "pattern" file.txt                # Search in file
+grep "pattern" file1 file2             # Search in multiple files
+grep -r "pattern" directory/           # Recursive search
+grep -i "pattern" file.txt             # Case insensitive
+-----
+# Context lines
+grep -A 3 "pattern" file.txt           # 3 lines After match
+grep -B 2 "pattern" file.txt           # 2 lines Before match
+grep -C 2 "pattern" file.txt           # 2 lines Context (before and after)
+-----
+# Invert match
+grep -v "pattern" file.txt             # Lines NOT matching
+grep -v "^#" file.txt                  # Exclude comments
+grep -v "^$" file.txt                  # Exclude empty lines
+-----
+# Count and line numbers
+grep -c "pattern" file.txt             # Count matches
+grep -n "pattern" file.txt             # Show line numbers
+grep -n -A 2 "pattern" file.txt        # Line numbers with context
+-----
+# Match whole words
+grep -w "word" file.txt                # Match whole word only
+grep -w "test" file.txt                # Won't match "testing"
+-----
+# Multiple patterns
+grep -e "pattern1" -e "pattern2" file.txt
+grep "pattern1\|pattern2" file.txt
+grep -E "pattern1|pattern2" file.txt   # Extended regex
+-----
+# File and filename operations
+grep -l "pattern" *.txt                # List filenames with matches
+grep -L "pattern" *.txt                # List filenames WITHOUT matches
+grep -h "pattern" *.txt                # Suppress filename in output
+grep -H "pattern" file.txt             # Force filename in output
+-----
+# Regex patterns
+grep "^start" file.txt                 # Lines starting with "start"
+grep "end$" file.txt                   # Lines ending with "end"
+grep "^$" file.txt                     # Empty lines
+grep "[0-9]" file.txt                  # Lines with numbers
+grep "^[A-Z]" file.txt                 # Lines starting with uppercase
+-----
+# Extended regex (-E)
+grep -E "[0-9]{3}-[0-9]{4}" file.txt   # Phone pattern
+grep -E "error|warning|fail" log.txt   # Multiple words
+grep -E "^(foo|bar)" file.txt          # Starting with foo or bar
+-----
+# Perl regex (-P)
+grep -P "\d{3}-\d{4}" file.txt         # Digit patterns
+grep -P "(?<=@)\w+" emails.txt         # Lookbehind
+grep -P "\K(pattern)" file.txt         # Keep left, match right
+-----
+# Binary and compressed files
+grep -a "pattern" binary.dat           # Treat binary as text
+zgrep "pattern" file.gz                # Search in gzip
+zgrep "pattern" file.log.gz            # Search in compressed logs
+-----
+# Color output
+grep --color=auto "pattern" file.txt
+grep --color=always "pattern" file.txt | less -R
+-----
+# Only show matched part
+grep -o "pattern" file.txt             # Only matching text
+grep -oP "\d+" file.txt                # Only numbers
+grep -oE "[a-z]+@[a-z]+\.[a-z]+" file.txt  # Extract emails
+-----
+# Max count
+grep -m 5 "pattern" file.txt           # Stop after 5 matches
+-----
+# Quiet mode
+grep -q "pattern" file.txt && echo "found" || echo "not found"
+if grep -q "error" log.txt; then
+    echo "Errors detected"
+fi
+-----
+# Exclude directories and files
+grep -r --exclude="*.log" "pattern" .
+grep -r --exclude-dir="node_modules" "pattern" .
+grep -r --exclude-dir={.git,node_modules,dist} "pattern" .
+-----
+# Show only filenames without matches
+grep -L "TODO" *.py                    # Python files without TODOs
+-----
+# Fixed string search (faster)
+grep -F "literal.string" file.txt      # No regex, literal search
+fgrep "literal.string" file.txt        # Same as -F
+-----
+# Process substitution
+grep "pattern" <(command)
+diff <(grep "foo" file1) <(grep "foo" file2)
+-----
+# Common log file searches
+grep "ERROR" /var/log/syslog
+grep -i "error\|warning\|critical" /var/log/messages
+grep "$(date +%Y-%m-%d)" /var/log/app.log
+-----
+# Find files then grep
+find . -name "*.py" -exec grep -H "TODO" {} \;
+find . -name "*.js" | xargs grep -l "console.log"
+-----
+# IP address patterns
+grep -E "[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}" log.txt
+grep -oP "\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}" log.txt
+-----
+# URL patterns
+grep -oE "https?://[a-zA-Z0-9./?=_-]*" file.txt
+-----
+# Match across lines (requires special handling)
+grep -Pzo "pattern1.*\n.*pattern2" file.txt
+-----
+# Performance with large files
+grep --mmap "pattern" largefile.txt
+-----
+# Combining with other tools
+ps aux | grep "[p]ython"              # Grep without matching grep itself
+netstat -tulpn | grep ":80"
+docker ps | grep -i "running"
+-----
+# Advanced filtering
+grep "ERROR" log.txt | grep -v "expected"  # Errors but not expected
+grep -E "user[0-9]+" file.txt | sort | uniq

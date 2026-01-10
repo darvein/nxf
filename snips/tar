@@ -1,0 +1,122 @@
+# Create archives
+tar -cf archive.tar files/             # Create tar
+tar -czf archive.tar.gz files/         # Create tar.gz (gzip)
+tar -cjf archive.tar.bz2 files/        # Create tar.bz2 (bzip2)
+tar -cJf archive.tar.xz files/         # Create tar.xz (xz)
+-----
+# Extract archives
+tar -xf archive.tar                    # Extract tar
+tar -xzf archive.tar.gz                # Extract tar.gz
+tar -xjf archive.tar.bz2               # Extract tar.bz2
+tar -xJf archive.tar.xz                # Extract tar.xz
+-----
+# Extract to specific directory
+tar -xzf archive.tar.gz -C /target/dir/
+tar -xf archive.tar --directory=/target/dir/
+-----
+# List contents
+tar -tf archive.tar                    # List files
+tar -tzf archive.tar.gz                # List files in tar.gz
+tar -tvf archive.tar                   # List with details (verbose)
+tar -tzf archive.tar.gz | grep "pattern"  # Search in archive
+-----
+# Verbose output
+tar -czf archive.tar.gz files/ -v      # Show progress
+tar -xzf archive.tar.gz -v             # Show extracted files
+-----
+# Exclude files
+tar -czf archive.tar.gz --exclude='*.log' directory/
+tar -czf archive.tar.gz --exclude-vcs directory/  # Exclude version control
+tar -czf archive.tar.gz --exclude='node_modules' project/
+-----
+# Multiple excludes
+tar -czf backup.tar.gz \
+    --exclude='*.tmp' \
+    --exclude='*.cache' \
+    --exclude='.git' \
+    directory/
+-----
+# Exclude from file
+tar -czf archive.tar.gz -X exclude-list.txt directory/
+-----
+# Extract specific files
+tar -xzf archive.tar.gz file.txt
+tar -xzf archive.tar.gz "*.txt"
+tar -xzf archive.tar.gz directory/subdir/
+-----
+# Append to existing archive
+tar -rf archive.tar newfile.txt        # Append to tar (not for compressed)
+tar -uf archive.tar file.txt           # Update if file is newer
+-----
+# Create archive from stdin
+find . -name "*.log" | tar -czf logs.tar.gz -T -
+ls *.txt | tar -czf texts.tar.gz -T -
+-----
+# Extract to stdout
+tar -xzf archive.tar.gz -O file.txt    # Extract file to stdout
+tar -xzf archive.tar.gz -O | grep "pattern"
+-----
+# Preserve permissions
+tar -czpf archive.tar.gz directory/    # Preserve permissions
+tar -xzpf archive.tar.gz               # Extract with permissions
+-----
+# Strip directory components
+tar -xzf archive.tar.gz --strip-components=1
+tar -xzf archive.tar.gz --strip-components=2
+-----
+# Follow symbolic links
+tar -czf archive.tar.gz -h directory/  # Dereference symlinks
+-----
+# Sparse files handling
+tar -czSf archive.tar.gz directory/    # Handle sparse files efficiently
+-----
+# Compare archive with filesystem
+tar -df archive.tar                    # Show differences
+-----
+# Multi-volume archives
+tar -czf - directory/ | split -b 100M - archive.tar.gz.
+cat archive.tar.gz.* | tar -xzf -      # Extract multi-volume
+-----
+# Backup with date
+tar -czf backup-$(date +%Y%m%d).tar.gz directory/
+tar -czf backup-$(date +%Y-%m-%d-%H%M%S).tar.gz /etc/
+-----
+# Incremental backups
+tar -czf full.tar.gz -g snapshot.file directory/
+tar -czf incremental.tar.gz -g snapshot.file directory/
+-----
+# Compress existing tar
+gzip archive.tar                       # Creates archive.tar.gz
+bzip2 archive.tar                      # Creates archive.tar.bz2
+xz archive.tar                         # Creates archive.tar.xz
+-----
+# Decompress to tar
+gunzip archive.tar.gz                  # Creates archive.tar
+bunzip2 archive.tar.bz2                # Creates archive.tar
+unxz archive.tar.xz                    # Creates archive.tar
+-----
+# Test archive integrity
+tar -tzf archive.tar.gz > /dev/null && echo "OK" || echo "Corrupted"
+gunzip -t archive.tar.gz               # Test gzip integrity
+-----
+# Encrypt archive
+tar -czf - directory/ | gpg -c > archive.tar.gz.gpg
+gpg -d archive.tar.gz.gpg | tar -xzf -
+-----
+# Network transfer
+tar -czf - directory/ | ssh user@host "cat > /remote/path/archive.tar.gz"
+ssh user@host "tar -czf - /remote/dir/" | tar -xzf -
+-----
+# Progress bar with pv
+tar -czf - directory/ | pv > archive.tar.gz
+pv archive.tar.gz | tar -xzf -
+-----
+# Parallel compression (pigz)
+tar -cf - directory/ | pigz > archive.tar.gz
+pigz -dc archive.tar.gz | tar -xf -
+-----
+# Archive with find
+find /var/log -mtime +30 -name "*.log" -print0 | tar -czf old-logs.tar.gz --null -T -
+-----
+# Smart archive (auto-detect format)
+tar -xaf archive.*                     # Auto-detect compression

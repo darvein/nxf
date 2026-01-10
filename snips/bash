@@ -1,0 +1,358 @@
+# String manipulation
+echo "${variable#prefix}"      # Remove shortest match from start
+echo "${variable##prefix}"     # Remove longest match from start
+echo "${variable%suffix}"      # Remove shortest match from end
+echo "${variable%%suffix}"     # Remove longest match from end
+echo "${variable/search/replace}"   # Replace first occurrence
+echo "${variable//search/replace}"  # Replace all occurrences
+echo "${variable:5:10}"        # Substring from position 5, length 10
+echo "${#variable}"            # String length
+-----
+# Arrays and loops
+declare -a fruits=("apple" "banana" "cherry")
+echo "${fruits[0]}"            # First element
+echo "${fruits[@]}"            # All elements
+echo "${#fruits[@]}"           # Array length
+for item in "${fruits[@]}"; do
+    echo "$item"
+done
+-----
+# File operations
+test -f "$file" && echo "exists"    # Check if file exists
+test -d "$dir" && echo "dir exists" # Check if directory exists
+test -r "$file" && echo "readable"  # Check if readable
+test -w "$file" && echo "writable"  # Check if writable
+test -x "$file" && echo "executable" # Check if executable
+[ -s "$file" ] && echo "not empty"  # Check if file not empty
+-----
+# Reading files line by line
+while IFS= read -r line; do
+    echo "Processing: $line"
+done < "$filename"
+-----
+# Reading into array
+mapfile -t lines < "$filename"
+readarray -t lines < "$filename"
+-----
+# Command substitution
+current_date=$(date +%Y-%m-%d)
+file_count=$(ls -1 | wc -l)
+running_procs=$(ps aux | grep "$pattern" | wc -l)
+-----
+# Conditional expressions
+if [ "$a" = "$b" ]; then echo "equal"; fi
+if [ "$a" != "$b" ]; then echo "not equal"; fi
+if [ -z "$var" ]; then echo "empty"; fi
+if [ -n "$var" ]; then echo "not empty"; fi
+if [ "$num" -eq 10 ]; then echo "equals 10"; fi
+if [ "$num" -gt 5 ]; then echo "greater than 5"; fi
+if [ "$num" -lt 20 ]; then echo "less than 20"; fi
+-----
+# Multiple conditions
+if [ "$a" = "foo" ] && [ "$b" = "bar" ]; then echo "both true"; fi
+if [ "$a" = "foo" ] || [ "$b" = "bar" ]; then echo "one true"; fi
+if [[ "$str" =~ ^[0-9]+$ ]]; then echo "numeric"; fi
+-----
+# Case statements
+case "$extension" in
+    *.tar.gz) tar -xzf "$file" ;;
+    *.zip) unzip "$file" ;;
+    *.tar) tar -xf "$file" ;;
+    *) echo "Unknown format" ;;
+esac
+-----
+# Functions
+function backup_file() {
+    local file="$1"
+    local backup="${file}.bak"
+    cp "$file" "$backup"
+    echo "Backed up to $backup"
+}
+backup_file "important.txt"
+-----
+# Error handling
+set -e  # Exit on error
+set -u  # Exit on undefined variable
+set -o pipefail  # Exit on pipe failure
+set -euo pipefail  # All three combined
+-----
+# Trap signals
+cleanup() {
+    echo "Cleaning up..."
+    rm -f /tmp/tempfile
+}
+trap cleanup EXIT
+trap 'echo "Interrupted"; exit 130' INT TERM
+-----
+# Process substitution
+diff <(sort file1.txt) <(sort file2.txt)
+while read -r line; do
+    echo "$line"
+done < <(command)
+-----
+# Here documents
+cat << EOF > output.txt
+This is a multi-line
+text block with $variable
+expansion enabled
+EOF
+-----
+# Here documents without expansion
+cat << 'EOF' > output.txt
+This will not expand $variable
+EOF
+-----
+# Parameter expansion with defaults
+echo "${var:-default}"         # Use default if unset
+echo "${var:=default}"         # Set and use default if unset
+echo "${var:?error message}"   # Error if unset
+echo "${var:+alternate}"       # Use alternate if set
+-----
+# Arithmetic operations
+result=$((5 + 3))
+result=$((count++))
+result=$((total / items))
+result=$((num % 2))
+let "result = 5 + 3"
+-----
+# Redirect stderr to stdout
+command 2>&1
+command &> output.txt          # Both stdout and stderr to file
+command > output.txt 2>&1      # Same as above
+command 2> errors.txt          # Only stderr to file
+command > /dev/null 2>&1       # Suppress all output
+-----
+# Background jobs
+command &                      # Run in background
+jobs                          # List background jobs
+fg %1                         # Bring job 1 to foreground
+bg %1                         # Resume job 1 in background
+kill %1                       # Kill job 1
+wait $pid                     # Wait for specific process
+-----
+# Finding and executing
+find . -name "*.log" -exec rm {} \;
+find . -name "*.txt" -exec grep "pattern" {} +
+find . -type f -name "*.sh" -exec chmod +x {} \;
+-----
+# Parallel execution with xargs
+ls *.txt | xargs -P 4 -I {} process_file {}
+cat urls.txt | xargs -P 10 -I {} curl -O {}
+find . -name "*.jpg" | xargs -P 8 -I {} convert {} {}.png
+-----
+# Bash debugging
+bash -x script.sh              # Debug mode
+set -x                         # Enable debug output
+set +x                         # Disable debug output
+-----
+# Script argument handling
+while getopts "f:o:v" opt; do
+    case $opt in
+        f) input_file="$OPTARG" ;;
+        o) output_file="$OPTARG" ;;
+        v) verbose=true ;;
+        \?) echo "Invalid option" ;;
+    esac
+done
+shift $((OPTIND-1))
+-----
+# Temporary files safely
+tmpfile=$(mktemp)
+trap "rm -f $tmpfile" EXIT
+echo "data" > "$tmpfile"
+-----
+# Directory stack
+pushd /path/to/dir             # Change dir and save previous
+popd                          # Return to previous dir
+dirs                          # Show directory stack
+-----
+# Associative arrays (bash 4+)
+declare -A config
+config[host]="localhost"
+config[port]="8080"
+echo "${config[host]}"
+for key in "${!config[@]}"; do
+    echo "$key = ${config[$key]}"
+done
+-----
+# Time command execution
+time command
+{ time command; } 2> timing.txt
+TIMEFORMAT='%R'; time command
+-----
+# Check command exit status
+if command; then
+    echo "Success"
+else
+    echo "Failed with code $?"
+fi
+-----
+# One-liners for common tasks
+# Remove duplicates from file
+sort file.txt | uniq
+# Count unique lines
+sort file.txt | uniq | wc -l
+# Show processes sorted by memory
+ps aux --sort=-%mem | head
+# Show disk usage sorted
+du -h | sort -h
+# Find large files
+find . -type f -size +100M
+-----
+# CSV/TSV processing
+# Extract column 3
+awk -F',' '{print $3}' file.csv
+# Sum column 2
+awk -F',' '{sum+=$2} END {print sum}' file.csv
+# Filter rows
+awk -F',' '$3 > 100 {print $0}' file.csv
+-----
+# JSON processing with jq alternative
+grep -Po '"key":\s*"\K[^"]*' file.json
+-----
+# Batch renaming
+for f in *.txt; do mv "$f" "${f%.txt}.bak"; done
+# Add prefix
+for f in *; do mv "$f" "prefix_$f"; done
+# Replace spaces with underscores
+for f in *\ *; do mv "$f" "${f// /_}"; done
+-----
+# Network checks
+# Check if port is open
+timeout 1 bash -c "cat < /dev/null > /dev/tcp/google.com/80" && echo "open"
+# Get public IP
+curl -s ifconfig.me
+curl -s ipinfo.io/ip
+# Check DNS
+nslookup google.com
+dig google.com +short
+-----
+# System information
+# Distro info
+cat /etc/os-release
+# CPU info
+lscpu
+grep "model name" /proc/cpuinfo | head -1
+# Memory info
+free -h
+cat /proc/meminfo
+# Uptime
+uptime
+-----
+# User and permissions
+# Add user to group
+usermod -aG groupname username
+# Change ownership recursively
+chown -R user:group /path
+# Find files by permission
+find . -perm 777
+# Make script executable
+chmod +x script.sh
+chmod 755 script.sh
+-----
+# Archive operations
+# Create tar.gz
+tar -czf archive.tar.gz directory/
+# Extract tar.gz
+tar -xzf archive.tar.gz
+# Create zip
+zip -r archive.zip directory/
+# Extract zip
+unzip archive.zip
+# List archive contents
+tar -tzf archive.tar.gz
+unzip -l archive.zip
+-----
+# SSH and remote operations
+# SSH with key
+ssh -i ~/.ssh/key.pem user@host
+# Copy file to remote
+scp file.txt user@host:/path/
+# Copy from remote
+scp user@host:/path/file.txt .
+# Rsync with progress
+rsync -avP source/ destination/
+# Rsync over SSH
+rsync -avz -e ssh source/ user@host:/path/
+-----
+# Environment variables
+export VAR="value"
+unset VAR
+env | grep PATTERN
+printenv VAR
+# Make permanent in .bashrc or .bash_profile
+echo 'export VAR="value"' >> ~/.bashrc
+-----
+# History manipulation
+history | grep "pattern"
+!123                          # Execute command 123 from history
+!!                            # Execute last command
+!$                            # Last argument of previous command
+!*                            # All arguments of previous command
+^old^new                      # Replace old with new in last command
+-----
+# Cron job syntax examples
+# Min Hour Day Month Weekday Command
+# 0 2 * * * /script.sh         # Every day at 2am
+# */5 * * * * /script.sh       # Every 5 minutes
+# 0 0 * * 0 /script.sh         # Every Sunday at midnight
+# 0 9-17 * * 1-5 /script.sh    # Weekdays 9am-5pm
+-----
+# Check if running as root
+if [ "$EUID" -ne 0 ]; then
+    echo "Please run as root"
+    exit 1
+fi
+-----
+# Get script directory
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+-----
+# Progress bar example
+for i in {1..100}; do
+    echo -ne "\rProgress: $i%"
+    sleep 0.1
+done
+echo
+-----
+# Color output
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+NC='\033[0m' # No Color
+echo -e "${RED}Error${NC}"
+echo -e "${GREEN}Success${NC}"
+-----
+# Check if variable is number
+if [[ "$var" =~ ^[0-9]+$ ]]; then
+    echo "Is a number"
+fi
+-----
+# URL encoding
+url_encode() {
+    python3 -c "import urllib.parse; print(urllib.parse.quote('$1'))"
+}
+-----
+# Generate random string
+random_string=$(head /dev/urandom | tr -dc A-Za-z0-9 | head -c 16)
+random_string=$(openssl rand -hex 16)
+-----
+# Wait for service to be ready
+while ! nc -z localhost 8080; do
+    sleep 1
+done
+echo "Service is ready"
+-----
+# Bash strict mode template
+#!/usr/bin/env bash
+set -euo pipefail
+IFS=$'\n\t'
+
+readonly SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+readonly SCRIPT_NAME="$(basename "$0")"
+
+main() {
+    # Your code here
+    echo "Hello from $SCRIPT_NAME"
+}
+
+main "$@"

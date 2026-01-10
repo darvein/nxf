@@ -1,0 +1,81 @@
+# Basic substitution
+sed 's/old/new/' file.txt              # Replace first occurrence per line
+sed 's/old/new/g' file.txt             # Replace all occurrences
+sed 's/old/new/2' file.txt             # Replace second occurrence per line
+sed 's/old/new/gi' file.txt            # Case insensitive replace all
+-----
+# In-place editing
+sed -i 's/old/new/g' file.txt          # Linux
+sed -i '' 's/old/new/g' file.txt       # macOS
+sed -i.bak 's/old/new/g' file.txt      # Create backup
+-----
+# Delete lines
+sed '5d' file.txt                      # Delete line 5
+sed '2,4d' file.txt                    # Delete lines 2-4
+sed '/pattern/d' file.txt              # Delete lines matching pattern
+sed '/^$/d' file.txt                   # Delete empty lines
+sed '/^#/d' file.txt                   # Delete comment lines
+-----
+# Print specific lines
+sed -n '5p' file.txt                   # Print line 5
+sed -n '10,20p' file.txt               # Print lines 10-20
+sed -n '/pattern/p' file.txt           # Print lines matching pattern
+-----
+# Multiple operations
+sed -e 's/foo/bar/' -e 's/baz/qux/' file.txt
+sed 's/foo/bar/; s/baz/qux/' file.txt
+-----
+# Regex patterns
+sed 's/[0-9]\+/NUM/g' file.txt         # Replace numbers
+sed 's/^\s\+//' file.txt               # Remove leading whitespace
+sed 's/\s\+$//' file.txt               # Remove trailing whitespace
+sed 's/\s\+/ /g' file.txt              # Collapse multiple spaces
+-----
+# Insert and append
+sed '5i\New line' file.txt             # Insert before line 5
+sed '5a\New line' file.txt             # Append after line 5
+sed '/pattern/i\New line' file.txt     # Insert before pattern
+-----
+# Replace only on matching lines
+sed '/pattern/s/old/new/g' file.txt
+-----
+# Use different delimiter
+sed 's|/path/old|/path/new|g' file.txt
+sed 's#http://old#http://new#g' file.txt
+-----
+# Capture groups and backreferences
+sed 's/\(.*\)@\(.*\)/\2:\1/' emails.txt    # Swap email parts
+sed 's/\([0-9]\{3\}\)-\([0-9]\{4\}\)/(\1) \2/' phone.txt
+-----
+# Address ranges
+sed '10,20s/old/new/g' file.txt        # Lines 10-20
+sed '1,/pattern/s/old/new/g' file.txt  # From line 1 to pattern
+sed '/start/,/end/s/old/new/g' file.txt # Between patterns
+-----
+# Negation
+sed '/pattern/!d' file.txt             # Delete lines NOT matching
+sed -n '/pattern/!p' file.txt          # Print lines NOT matching
+-----
+# Multiple files
+sed 's/old/new/g' *.txt
+for f in *.txt; do sed -i 's/old/new/g' "$f"; done
+-----
+# Add line numbers
+sed = file.txt | sed 'N; s/\n/\t/'
+-----
+# Remove HTML tags
+sed 's/<[^>]*>//g' file.html
+-----
+# Convert DOS to Unix line endings
+sed 's/\r$//' dosfile.txt
+-----
+# Extract emails
+sed -n 's/.*\([a-zA-Z0-9._%+-]\+@[a-zA-Z0-9.-]\+\.[a-zA-Z]\{2,\}\).*/\1/p' file.txt
+-----
+# Comment out lines
+sed 's/^/# /' file.txt                 # Add # to all lines
+sed '/pattern/s/^/# /' file.txt        # Comment lines matching pattern
+-----
+# Uncomment lines
+sed 's/^# //' file.txt
+sed 's/^#\s*//' file.txt

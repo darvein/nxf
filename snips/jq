@@ -1,0 +1,158 @@
+# Basic operations
+jq '.' file.json                       # Pretty print
+jq -r '.' file.json                    # Raw output (no quotes)
+jq -c '.' file.json                    # Compact output
+-----
+# Access fields
+jq '.field' file.json                  # Get field
+jq '.field.nested' file.json           # Nested field
+jq '.field.nested.deep' file.json      # Deep nested
+-----
+# Arrays
+jq '.[]' file.json                     # All array elements
+jq '.[0]' file.json                    # First element
+jq '.[-1]' file.json                   # Last element
+jq '.[2:5]' file.json                  # Slice (elements 2-4)
+jq '.[:3]' file.json                   # First 3 elements
+-----
+# Filter arrays
+jq '.[] | select(.age > 25)' file.json
+jq '.[] | select(.status == "active")' file.json
+jq '.[] | select(.name | contains("John"))' file.json
+-----
+# Map operations
+jq '.[] | .name' file.json             # Extract field from all elements
+jq 'map(.name)' file.json              # Same as above
+jq 'map(.price * 1.1)' file.json       # Transform values
+-----
+# Keys and values
+jq 'keys' file.json                    # Get all keys
+jq 'values' file.json                  # Get all values
+jq 'to_entries' file.json              # Convert to key-value pairs
+jq 'from_entries' file.json            # Convert back from pairs
+-----
+# Length and type
+jq 'length' file.json                  # Array/object length
+jq '.[] | length' file.json            # Length of each element
+jq 'type' file.json                    # Get type
+-----
+# Conditional operations
+jq 'if .age > 18 then "adult" else "minor" end' file.json
+jq '.[] | if .price > 100 then .name else empty end' file.json
+-----
+# Sorting
+jq 'sort' file.json                    # Sort array
+jq 'sort_by(.age)' file.json           # Sort by field
+jq 'sort_by(.age) | reverse' file.json # Sort descending
+-----
+# Group and unique
+jq 'group_by(.category)' file.json     # Group by field
+jq 'unique' file.json                  # Remove duplicates
+jq 'unique_by(.id)' file.json          # Unique by field
+-----
+# Aggregation
+jq 'map(.price) | add' file.json       # Sum prices
+jq 'map(.price) | add / length' file.json  # Average
+jq 'map(.price) | max' file.json       # Maximum
+jq 'map(.price) | min' file.json       # Minimum
+-----
+# Construct new objects
+jq '{name: .name, age: .age}' file.json
+jq '{fullName: (.firstName + " " + .lastName)}' file.json
+jq '.[] | {id, name, email}' file.json
+-----
+# Array construction
+jq '[.[] | .name]' file.json           # Array of names
+jq '[.[] | select(.active) | .id]' file.json
+-----
+# Multiple outputs
+jq '.name, .age, .email' file.json     # Output multiple fields
+jq '.[] | .name, .age' file.json       # Multiple fields per element
+-----
+# String operations
+jq '.name | ascii_upcase' file.json    # Uppercase
+jq '.name | ascii_downcase' file.json  # Lowercase
+jq '.text | split(",")' file.json      # Split string
+jq '.parts | join(", ")' file.json     # Join array
+jq '.url | startswith("https")' file.json
+jq '.email | endswith("@example.com")' file.json
+-----
+# Regular expressions
+jq '.email | test("@gmail.com$")' file.json
+jq '.[] | select(.name | test("^J"))' file.json
+jq '.text | match("\\d+") | .string' file.json
+jq '.text | gsub("old"; "new")' file.json
+-----
+# Null handling
+jq '.field // "default"' file.json     # Default if null
+jq '.field | select(. != null)' file.json
+jq 'del(.field)' file.json             # Remove field
+-----
+# Has and in
+jq 'has("field")' file.json            # Check if key exists
+jq '.[] | select(has("optional"))' file.json
+-----
+# Recursive descent
+jq '.. | .name? | select(. != null)' file.json
+jq '.. | select(.type? == "user")' file.json
+-----
+# Path operations
+jq 'path(.field.nested)' file.json     # Get path to field
+jq 'getpath(["field", "nested"])' file.json
+jq 'setpath(["new", "field"]; "value")' file.json
+-----
+# Multiple files
+jq -s '.' file1.json file2.json        # Combine into array
+jq -s 'add' file1.json file2.json      # Merge objects
+jq -s 'map(select(.active))' *.json    # Filter across files
+-----
+# Input from command
+echo '{"name": "John"}' | jq '.name'
+curl -s api.example.com/data | jq '.results'
+-----
+# Variables
+jq --arg name "John" '.[] | select(.name == $name)' file.json
+jq --argjson age 25 '.[] | select(.age > $age)' file.json
+-----
+# Read raw input
+jq -R '.' file.txt                     # Each line as string
+jq -Rs '.' file.txt                    # Entire file as string
+jq -R 'split("\t")' file.tsv           # Parse TSV
+-----
+# Output formats
+jq -r '.[]' file.json                  # Raw strings (no quotes)
+jq -j '.[]' file.json                  # Raw, no newlines
+jq '@csv' file.json                    # CSV output
+jq '@tsv' file.json                    # TSV output
+jq '@json' file.json                   # JSON string
+jq '@base64' file.json                 # Base64 encode
+-----
+# Complex filters
+jq '.users | map(select(.age > 21)) | sort_by(.name) | .[0:10]' file.json
+jq 'group_by(.category) | map({category: .[0].category, count: length})' file.json
+-----
+# Flatten
+jq 'flatten' file.json                 # Flatten array
+jq 'flatten(2)' file.json              # Flatten 2 levels
+-----
+# Error handling
+jq '.field?' file.json                 # Don't error if missing
+jq 'try .field catch "N/A"' file.json
+-----
+# Date operations
+jq 'now' -n                            # Current timestamp
+jq '.timestamp | strftime("%Y-%m-%d")' file.json
+jq '.date | strptime("%Y-%m-%d") | mktime' file.json
+-----
+# Update fields
+jq '.price = .price * 1.1' file.json   # Update field
+jq '.items[0].name = "Updated"' file.json
+jq '.[] |= . + {processed: true}' file.json
+-----
+# Common API parsing
+curl -s https://api.github.com/users/octocat | jq '.name, .public_repos'
+curl -s https://api.github.com/repos/owner/repo | jq '.stargazers_count'
+-----
+# Debugging
+jq -r '.[] | @json' file.json          # Debug output
+jq 'debug' file.json                   # Debug filter
