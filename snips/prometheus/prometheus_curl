@@ -1,0 +1,4 @@
+# Prometheus list plugins
+curl -s http://localhost:8001/plugins | jq '.data[] | select(.name=="prometheus")'
+curl -s http://localhost:8001/plugins | jq '.data[] | select(.name=="prometheus") | {name, enabled, config}'
+-----
